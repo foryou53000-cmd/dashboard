@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>옥곡초 생활 앞마당</title>
+
+    <!-- PWA 설정 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a365d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="생활앞마당">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        'sans': ['Noto Sans KR', 'sans-serif'], 
+                        'display': ['Outfit', 'sans-serif'],
+                        'handwriting': ['Gaegu', 'cursive']
+                    },
+                    colors: { 'school': { 'blue': '#1a365d', 'sky': '#3182ce', 'gold': '#ecc94b', 'light': '#ebf8ff' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { font-family: 'Noto Sans KR', sans-serif; height: 100%; overflow: hidden; }
+        .main-bg { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #fef3c7 100%); }
+        .dashboard-grid { display: grid; grid-template-rows: 25% 5% 25% 45%; height: calc(100vh - 52px); gap: 0.4rem; padding: 0.4rem; overflow: hidden; box-sizing: border-box; }
+        .card { border-radius: 1.25rem; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08); }
+        .card:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.18); }
+        .admin-edit-btn { position: absolute; top: 0.5rem; right: 0.5rem; width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.9); border: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transform: scale(0.8); transition: all 0.2s ease; z-index: 10; }
+        .card:hover .admin-edit-btn { opacity: 1; transform: scale(1); }
+        .admin-edit-btn:hover { background: #1a365d; color: white; }
+        .pending-badge { position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; animation: pulse-badge 2s infinite; z-index: 20; }
+        @keyframes pulse-badge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .pulse-dot { animation: pulse-dot 2s infinite; }
+        @keyframes fade-in { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .fade-in { animation: fade-in 0.3s ease-out; }
+        .dynamic-content { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 0.35rem; }
+        .dynamic-content > * { flex: 1; display: flex; align-items: center; min-height: 0; border-radius: 0.5rem; }
+        .approval-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: white; border-radius: 0.5rem; margin-bottom: 0.5rem; border: 1px solid #e5e7eb; transition: all 0.2s; }
+        .approval-item:hover { border-color: #3182ce; box-shadow: 0 2px 8px rgba(49, 130, 206, 0.15); }
+        .approval-item.pending { border: 2px solid #f59e0b; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); }
+        .approve-btn { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+        .approve-btn.accept { background: #d1fae5; color: #059669; }
+        .approve-btn.accept:hover { background: #059669; color: white; transform: scale(1.1); }
+        .approve-btn.reject { background: #fee2e2; color: #dc2626; }
+        .approve-btn.reject:hover { background: #dc2626; color: white; transform: scale(1.1); }
+        .approve-btn.found { background: #dbeafe; color: #2563eb; }
+        .approve-btn.found:hover { background: #2563eb; color: white; transform: scale(1.1); }
+        .header-glass { background: linear-gradient(135deg, #1a365d 0%, #2c5282 50%, #3182ce 100%); box-shadow: 0 4px 20px rgba(26, 54, 93, 0.3); }
+        .admin-mode-indicator { background: linear-gradient(135deg, #f59e0b, #d97706); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; color: white; display: flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4); }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 2px; }
+        .modal-overlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+
+        .swiper { width: 100%; height: 100%; }
+        .swiper-slide { height: auto; display: flex; flex-direction: column; }
+        .swiper-button-next, .swiper-button-prev { width: 22px !important; height: 22px !important; background: rgba(255,255,255,0.7); border-radius: 50%; }
+        .swiper-button-next:after, .swiper-button-prev:after { font-size: 10px !important; font-weight: bold; color: #374151; }
+        .swiper-pagination-bullet { width: 6px; height: 6px; background: rgba(0,0,0,0.3); opacity: 1; }
+        .swiper-pagination-bullet-active { width: 16px; border-radius: 3px; background: #1a365d; }
+
+        .pause-btn { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; border: none; }
+        .pause-btn:hover { background: rgba(255,255,255,0.95); transform: scale(1.1); }
+        .pause-btn.paused { background: #fbbf24; }
+        .pause-btn-white { background: rgba(255,255,255,0.3); }
+        .pause-btn-white:hover { background: rgba(255,255,255,0.5); }
+
+        .category-title { font-size: 0.875rem; font-weight: 700; }
+
+        .postit { padding: 1rem; border-radius: 2px; box-shadow: 2px 3px 8px rgba(0,0,0,0.15); transition: all 0.2s; position: relative; }
+        .postit:hover { transform: scale(1.03) rotate(0deg) !important; box-shadow: 4px 6px 12px rgba(0,0,0,0.2); }
+        .postit::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 40px; height: 12px; background: rgba(255,255,255,0.5); border-radius: 0 0 3px 3px; }
+        .postit-yellow { background: linear-gradient(135deg, #fef9c3 0%, #fde047 100%); }
+        .postit-green { background: linear-gradient(135deg, #dcfce7 0%, #86efac 100%); }
+        .postit-pink { background: linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%); }
+        .postit-blue { background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%); }
+        .postit-purple { background: linear-gradient(135deg, #f3e8ff 0%, #d8b4fe 100%); }
+        .postit-orange { background: linear-gradient(135deg, #ffedd5 0%, #fdba74 100%); }
+        .suggestion-board { background: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%); border: 8px solid #5D3A1A; border-radius: 8px; box-shadow: inset 0 0 20px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.3); }
+
+        .calendar-day { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; position: relative; }
+        .calendar-day:hover { background: #e0e7ff; }
+        .calendar-day.today { background: #6366f1; color: white; font-weight: bold; }
+        .calendar-day.has-event::after { content: ''; position: absolute; bottom: 2px; width: 4px; height: 4px; background: #ef4444; border-radius: 50%; }
+    </style>
+</head>
+<body class="main-bg">
+    <!-- 로그인 화면 -->
+    <div id="loginContainer" class="h-screen flex items-center justify-center p-4">
+        <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-school-blue/20 to-transparent rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-school-gold/30 to-transparent rounded-full blur-3xl"></div>
+        </div>
+        <div class="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 shadow-2xl max-w-sm w-full text-center border border-white/50">
+            <div class="w-32 h-32 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-xl shadow-yellow-300/50 rotate-3 hover:rotate-0 hover:scale-110 transition-all overflow-hidden">
+                <img src="data:image/png;base64,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" alt="옥곡초" class="w-full h-full object-cover">
+            </div>
+            <h1 class="text-2xl font-black text-school-blue mb-2 font-display">옥곡초 생활 앞마당</h1>
+            <p class="text-gray-500 text-sm mb-6">✨ 안전하고 행복한 학교생활 ✨</p>
+            <button onclick="googleLogin()" class="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-white border-2 border-gray-200 rounded-xl font-semibold text-gray-700 hover:border-school-blue hover:bg-school-light transition-all mb-4 shadow-sm">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">Google 계정으로 로그인
+            </button>
+            <p class="text-xs text-gray-400">@gsok.es 계정만 로그인 가능</p>
+        </div>
+        <!-- 로그인 에러 토스트 -->
+        <div id="loginErrorToast" class="hidden fixed bottom-8 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-xl shadow-lg text-sm font-medium z-50">
+            <span id="loginErrorMsg">오류가 발생했습니다</span>
+        </div>
+    </div>
+
+    <!-- 대시보드 -->
+    <div id="dashboardContainer" class="hidden h-screen flex flex-col">
+        <header class="header-glass text-white px-4 py-2.5 flex-shrink-0">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 flex-1">
+                    <div class="w-9 h-9 rounded-lg overflow-hidden shadow-md"><img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAFhAUgDASIAAhEBAxEB/8QAHQABAAEEAwEAAAAAAAAAAAAAAAECBgcIAwQFCf/EAFIQAAEDAgIFBQkMBwYFBQEAAAABAgMEBQYRBxIhMUEIE1Fh0RciUlZxgZGUoRQVFjI3VFVyc7GywSM1NkJ1krMkM3SCotImNENEo1NiY8Lh8P/EABwBAQACAgMBAAAAAAAAAAAAAAABBgUHAwQIAv/EAEkRAAIBAgIFBwYLBwQABwAAAAABAgMEBREGEiExUQcTFUFhcZEiU4GhwdEUFjIzNVSSorHh4hckQlJyc7IjNFWCQ2KTlMLw8f/aAAwDAQACEQMRAD8A0yAAAAAAAAABy09PPUSIyCF8jl4NTM9uiwldp8lkayBq+G7anmQ5adCpV+RFs4atzSo/OSSLfBesGB2a36aucreOozJfadn4E2/hU1HpTsO2sLuX1es6MsYtF/F6mWCC/vgTb/nNR6U7CfgTb/nNR6U7D66KueC8T56atOL8CwAX/wDAm3/Oaj0p2D4E2/5zUelOwdFXPBeI6atOL8CwAX98CaD5zUelOwfAmg+cz+lOwdE3PBeI6atOL8CwQX78CaD5zP7OwfAmg+cz+zsHRNzwXiOmrTi/AsIF+/Amg+cz+zsHwJoPnM/s7CeibngvEdNWnF+BYQL9+BNB85n9nYPgTQfOZ/Z2Dom54LxJ6atOL8CwgX98CaD5zUezsHwIoPnM/s7B0Tc8F4kdNWnF+BYIMgJgegz/AOaqPZ2Epga3/Oqj2dg6IueC8R01acX4GPgZCTAtv+dVHs7CfgJb/nVR7OwdE3PBeI6atOL8DHgMifAO3/Oqj2dhKYCt6/8AdVHs7COibngvEdNWnF+BjoGRvgDbvndT7Ownuf29U/5yp9nYOirngvEdNWnF+BjgF9z6PZO+WC4J1I9nYeNX4NvlK1XJTtnanGN2a+g4Z2FxDfH2nYp4la1Hkpr07PxLdBXNFLDIsc0b43pva5MlKDptZHeTz3AAAAAAAAAAAAAA7FBR1FdUtp6aNXvd7E6VJScnkiJSUVm9xxQxyTStiiY573LkjUTapd9hweq5TXRdm9Imr96nu4esVNaoEXVSSoVO+kVPYnUewWC0wuMVrVdr4FXvsalJuFDYuJwUlJTUkSR08LI2pwah2CAZhJJZIwEpOTzbAAJPkkAAAAEgEBQABvCEkghQSpBJIAJRNoIJQkAIElaJtKWptKkAKiUKVK2ptAJQrQpQqBJUhUiEIVofJJKIVIgQlCGSdK52i33KJY6umjkTpy2p5ywcS4FqaXWqLWqzwptWNfjJ5OkyciZlXUda4s6VdeUtvHrO3bX1a2fkPZw6jXt7XMcrXIrXIuSoqbUIMtYywlT3WF1TRsZDWJtzRMkf1KYqqoJqad8E8bo5GLk5qptQrN3ZztpZPauJbrK/p3cc47H1o4gAdQ7wAAAAAByU8Mk87IYmq571yaiGTMN2aG00iIiI6d6ZyPy9idR4+ALSjIVucze/fsiReCcVLuLDhlooR52W97iqYzfupN0IPYt/ayQAZcwIAAIAAJJyAAJGQBBIAGRKAEAAEgEEgkDIlN5BKbQBvKkIJQEEpvK03lCbytCSSUTYVoUoVICCpNqleRQ05EQ+SSUK2lOZKAlFZW1ClCpASVJuJQhCU2AElqY9wzFdaR1XTMRtbE3NMk+OnQpdeZBx1aUasHCW5nLRrTozU4PajXt7XMcrXIrXIuSovAgvjSjZEpqpt1p2ZRzLqyoibEdwXzljlPuaEqFRwZerS5jc0lUj1gAHAdkHatVI6uuENK3/AKjslXoTidUuzRzS69ZPVuTZG3UavWpz21LnasYHWvK3MUJVOCL1p4mQQMhjajWMajUTqOXMgFw3IoLbbzZKEkIAfJIIBJJIIQkAgDME5gE5BACCQQAQTmCCSQAASATxIAIKiUCEkglCpCkkArKmlCFaAFbSpCgqaAVoVtKEKkUgkrQqQoTaVIoPorQnMpRSQCrMZkINgIOlfKCO52uejlRMpGqiL0LwUwbVwPpqmWnkTJ8blavlQz+qmI9JdElLiR0rUVG1DEf59ymGxijnBVF1bDP4DcONSVJ7nt9Ja4AK6WoGQdH0XN2R0mW2SVVz6tiGPjJmC8vg5S5J4Wf8ymTwmOddvgjDY5Jq2S4tHshN4BYyoEggAAAkAEBQSAVEDiSCQACAAAQSRmFJRCQEABIBUhSVIfRBKISAQCSUKUKk3kgqTdmVIpShKAFaFbShCpADkJQoRSrMArRciShCpASVoTmU5k5oAVZk5lKKMwMySwtLtOi09HVIm1rlYvn2/kX2qlo6VET4OMVd/Pty9CnUv461tPuO9hk3G7g1x/ExaACnF8BkzBmaYcpkXod96mMzJuEP2epfqr95lcI+dl3e1GEx35iPf7GewCAhYCpkgAkgkhQe5hfCV/xLLqWmgklZxlcmrGn+Y4Lm5o2tN1a81GK3tvJes5KVGpWkoU02+w8MlDNOHtBFRIjX3u7pCi746Zua+lewv+yaJ8F2xqKtrSsfxfUuV+3pyXYnmNf4nyqYBZNxpydV/wDlWzxeS8MyxWuiWIV9s0oLtfsWZqzGx8r9SJjpHdDUzX2HZba7k74ttrHeSBy/kbkUdjtNIxraa20sSJu1YkO4ymhZ8WKNvkahUq3LXTT/ANK0eXbP3RMxT0H2eXW8F+Zpb703b6LrvV39g96bt9F13q7+w3V5lngN9A5lngN9Bw/tsl9T+/8ApOT4j0/PPw/M0q96bt9F13q7+wn3pu30XXerv7DdTmWeA30DmWeA30D9tkvqf3/0j4j0/PPw/M0rS0Xb6LrvV39hPvTdvouu9Wf2G6fMs8BvoHMs8BvoJ/bZL6n9/wDSPiPT88/D8zSz3pu2f6qrvV39g96bt9F13q7+w3T5lngN9BPNM8BvoH7bZfU/v/pI+I9Pzz8PzNLEtF1+i671d/YT703X6LrvV39hulzTPAb6EHNM8BvoQftul9T+/wDpHxGp+efh+Zpclpuv0XXerv7B703X6LrvV39hujzLPAb6BzLPAb6Cf22y+p/f/SPiNT88/D8zS9LTdfouu9Xf2BLVdc/1XXerv7DdHmWeA30DmWeA30D9t0vqf3/0kfEen55+H5mmCWq6/Rdd6u/sKveq65fquu9Xf2G5vMs8BvoHMsy+I30Erltl9T+/+kfEeHnn4fmaZparr9GV3q7+wLbri349vq2+WByfkbm8yzP4jfQQ+lgf8aGN3lahK5bZddn9/wDSQ9B4dVZ+H5mljs2PVr0Vrk3ouxSUU3ErcP2atYrKq10krV3o6JNpad70SYOuKK6KifQSKmx1M/VRP8u4zVjyzYXVaVzRnDtWUl7H6joV9CrqCzpVFLv2e81pRSUMs3/QjcqdHSWa5x1TU3Mnbqu9KbDG+ILDd7BU8xdqGWmdnscqd47yLuNh4RpRhOM7LOupPhul4PJlcvMKvLLbWptLjvXijoIpOZxopUilgMfmV5gozGZORGZWWlpTX/htn27fuUutVLS0o/s4z7dv3KdW+/28+47mHf7qn3mLwAUs2ADJuEP2epfq/mYyMm4R/Z6l+r+ZlcI+dl3e0wmO/MR7/YesSgQksBU2DvWS03G9XBlBbKSSpqHrsaxN3Wq8EPYwDgy64vubaejjWOma5OfqHJ3rE/Neo2ewXhK0YVtzaW206I/L9JM5O/kXpVTX+mWn1po9F0afl12tkepdsvdvfZvLFgmjtbEXzk/Jp8ePd7ywMAaGLdQRsq8S6lfUrt5hP7pnUvhGWaOjp6SnZT0sEcETEyaxjUaiIdhEyJ4nmvG9IsRxutzt5UcuC6l3LcjZ1lh1tYw1KMcvxfeyEbtJ6RxHAwZ3QSOJHQACSAAT0gAAAAgAAAgAEoAOkAAEgAkDpHAdJPQCBxJRSASQVEZAZgBU2HUuVtorlSvpa+lhqYXpk5kjEcincByU6s6clODya60fMoqSaks0YWx9ocie19bhdyRPTNVpHr3rvqrwML19JVUFXJSVtPJTzxrk+N6ZKhugqFqY+wRacV0Tm1MaRVbU/RVLU75q9fShuTQ/lWuLOUbbFm5092v/ABR7/wCZevvKZjOidKunVtPJlw6n7vwNVAqnq4rw5dMM3N1Dc4FY7NebkT4sidKKeQei7a5o3VKNahJSjJZprc0a3q0p0puFRZNdRVmWppR/Zxn27fuUupOstXSiv/DjPt2/cp8Xy/dp9x2MNf73T7zF4AKSbCBk3CH7PUv1fzMZGTMHqi4dpVToVPaZXCfnZd3tMJjvzEe/2M9cuLAWFLhi69soKNFZEm2eZU2Rt7TxbbRVNxr4KGkjWSeZ6MY1OKqba6M8I0uEcOxUMaI6pk7+pl4ud0eRDCaeaXx0dssqW2tPZFcOMn3dXF+k6ej+DPEq+c/kR39vYephWw0GHbPBbLdEjIom5K7i9eKr1nrpsCbCTyhcXFW5qyq1ZOUpPNt72zbdOnGnFQgskgADhPocCSOsAAEgAAgkAAAAAAggAAgAnoIJAABIAHEBCSBwJI4E8QBxAAIAAJBPAIQBmCcwqZkE5k5gt3HWFqDFVklt9W3VkyzhmRO+jdwVDVzE9ir8O3iW2XCNWyRr3rstj28FQ3ELF0v4MjxRYllp2o240qK+F3hJxaptPk305ngt0rK6l+7zfX/A31rsfX4lU0mwFX1J16S/1I+tcO/gaxlqaUP2dZ9u37lLrmZJFK+KViskYqtc1d6KnAtPSf8As637dv3Kenb5p202uBrTDdl3TT4mMQAUk2GDJWDP2cpf834lMamVdGdFJcqG2W+FFV9RLzbcutymSwycac5zk8kotv1GGxuLnRjFb3Je0z5ybcI85JLiqtjRWtzipEVOPF35GekTJDzcNWqCy2SktlM1Gx08aM2cV4qemeV9LceqY7ilS7k/JzyiuEVu977WX3CbCNhaxorf19/WAB5CtGSHUOoeQdQAAABJAAAJAAPOxFeKKw2ie53CRI4IW5r0qvBE6zXfF+ljEt4qZG2+odbKPPvGRLk/LrdvzLt5TtynY202prlSGVHzvRF+MqLkiL6TCB6X5KNCcPeGwxW7pqpUqZ6uazUUm1sW7NtPb4Gs9K8cuFcu0oycYx35bG29vgXVaNIeMLbVNnZe6qfLeyd6vaqeRTPOizH9NjGjfDLGlNcoERZY89j08JvYauF16JLhPb9IFrdA7LnpkhenSji06d6CYbi2GVatKkoVoRbjJJLcs8nlvT3bdxi8Bx66trqEJzcoSeTT27+tG2AAPHpt8EgAAxxpZ0lR4Vclst0bai5vbrOV3xYU4Z9K9RkZ66sbnJwRVNO8YV89yxRcayocrpH1D08iIqon3G1uSjRG10gxCpVvFrU6ST1eLe7Ps2N9pVtKsWq4fbRjReUpvfwS3noV+PcYVlU6okv9bG5y/FikVjU8yF04G0vXu2VUUF8kW4USqiOc7+8YnSi8fOYwB6Zv9EsGv7V2ta2hqZZbIpNdzW1M1nQxi9oVedhVefa88+83UttbTXGhhraSVssEzEexycUU7PExTybLlPV4SrKGVyubR1CJGqruRyZ5ewyqh4u0mwZ4Ji1fD881TlknxW9epo3Nhl4r20hXyy1l6+skBAYE7oABIAAAAAABDtxIGYNddP2FPem+NvlJHlSVq5SIifEk/wD0wNpO/Z1n27fuU3i0g2KLEGFa23SNzesaujXocm1DSDSpG6Kxc09MnsqUaqdCpminqbk60keL6PzoVXnUorVfbH+F+Gz0GssawxWeL06kF5M3n6ev3mLwAZYzQNl+R9ZGXO6U9wmZrR26N0jc02a6uVE86bzWg3V5F1ujg0ZSXFP7ypqXNXyNVSuaXYk8PwS4lF5Oa1F/2aT9WZ929sri5pJ7k8/BP2mdkTYSNnQNp5nLmPKB7R5QB5CSAASAAAQSAACCQDAvKh/Xdk/w0n4kMPGY+VDG/wB9rLLqrqcxI3Pr1kMOHs3kyaei1plwl/nI0vpP9KVu9fggXBo4/b2yf4xhb5cOjVrn4+sqNRVyq2KuXQW3FmlYV2/5JfgzFWH+6p/1L8TboAHgM34SAACmX+6f9VTTG8/riu/xMn4lNzpf7p/1VNM741zL3XtcioqVMmxfrKeh+QZrWvV/R/8AI1/p38ij3v2HSAB6LNcGeuS9+pb3/iY/wqZiMP8AJgje2w3iRWqjX1LNVenJq5mYDxVynNPSq8y4x/wibo0Z2YXR7n+LAzAKEZ0nMEBACQQhKgABBntAAAUAhybDS3lZWZtkvlTFEzVgqahs8aImxNZFzRPP95unwNY+XVQsSzWW4oia7pli9iqbH5McUdni0qDfk1YOPpW1fg/EwmO2qrUoVOuEk/YzUsAG9jDg3y5JFKlPoOs70XNZ5J5F6v0ip+Roab/8ltMtBGGeuKZf/PIa55TZNYVTXGa/xkZTCVnWfd7jJ20geYk0UWIAgAAkEAEkEgAhVyTM6VRV6jskO49M2qeTVRuSRdhmMIt6Nab5w5aUU3tOVK12Z3KaZJUPIRjuhT0LfG5NqmSxOytqdFyjsZy1IRSLa0t4R+FuG+YgVG1tM7nadV4rltb5zV64UdVb62SjrYHwVES5PY9MlQ3UPHv+GLDfkT32tdPUuTc9ze+Tz7y26A8ps9G6Lsrqm50c81l8qOe/LPY09+Wa2lJx/RmOJT56lLVn27maeGatAOBqyOuTE90gdDGxqpSxvTJzlX97LoMk2vR/g+21TamlsdMkrdrXPTWy8mZc6IiIiIiIibkQzemfK/HFLKdjhtNwU1lKUss8utJJvf1vPd1HRwXRD4JXVe5km47kt2fFkkkEmiy8gAkAGuunLA9ZbL3Pf6CndLb6ldeXUTNYn8c+pTYopkYyRiskY17HJkrXJmilt0O0tudF7/4VRWtFrKUXszXf1NdTMVjGE0sUt+am8mtqfBmkp37DaK+93OK3W2nfNPIuWTU2NTpXoQ2hrNHODKuodUS2KmR7lzXURWpn5EPZsVhs9jhWK1W+npGrv5tiIq+VTdl/y6WCtm7S3k6rX8WSin3ptvwWfYUmhoNW51c9UWr2Z5nR0e4ahwrhintUbteRM3zP8J67z2KmoSPYm87B59fG5XZohoKlXliuITuLyWcpttvi2bJtLenRhGlBZRSyRHu12Zz01Uki5KebqO6FOxRxu5xFyMzeYfaRotpZHcnTjkerwHAhNxKlKe86YQLvJTcQm8AkhN5KkIQCSFJI4hAk1+5clGkujK3VmeS09ya1E6dZjuw2BMG8tpM9DTF6LpB+F5YtEZuGNWzX8y9ew616s6Eu40hAB6cKqD6Aclz5B8MfYzf15D5/n0A5LnyD4Y+ym/ryGt+U/wCi6X9xf4yMrhHzz7vajJpHmHnBowsJJBIABAJAAIJABQ6Nrt6FYJjJxeaZOeRxJAxOCFbWo3chUD6lVnL5TIbbABwxSZ1c0S/uo1U8h8xg5JtdR8t5HMAD4JJAHUACSCQAAAQADg5zOt5pNqJHmvVtPuMHLPLqIbyOcpc1Hb0KgfKbTzROeRxczH0FbGNbuQqBySrVJLJsazCbwu8JuCHEQSu4hApKEAKE3ELvJABCEruCAAwdy2fkYb/FIPwvM4mDuWz8jDf4pB+F5YNFPpm2/rR17v5iXcaQAA9PFUB9AOS58g+GPsZv68h8/wA+gvJZjR2gTC68eam/ryGtuVB5YXS/uL/GRlMJaVZ58PajJBByrE5N2SnGrVTeimjE0ywppggkEkgAAAAAAAEEAAAA8LEVwbZrjQ3CddWklf7mmdwZrfFcvVme6dDEVrgvVkqrZUImpURq3PwV4L6Tv4XWo0rqPwj5t7JccnsbXat67UcFzGcqb5v5S2rvR302ps4kmK8A44mtFzXBmL38xWUy83BVOXJkrU+LmvDNOJlNrmuajmqitVM0VOJ3MdwC6wW45qus4vbGS+TOL3Si+1eldZw2N9SvKetDetjXWnwZIBJgzugAAAAomljhidLNI2ONqZuc5ckRCVFyeS3kN5bRNJHDE+WV6MjY1XOcu5ETiePhKsW60893RFSGpkVIM+MbdiL59qmPsT4qnxzfm4Nwu53uNX/26s/dWNF2onVwMq0NNDRUcNJTtRkULEYxE4IiFqxLB54JYRhdLKvWyer1xprdnwc3uW9Jbd5i7a8V5XbpbYQ2Z8ZdnYvxfYc4AKoZMIBwCABSUIJXcQCOJJCEqAQm8kIACFJI4laNcu5FDBSYO5bPyMN/ikH4XmdmwuXeqIYO5bsaM0Lt/ikH4Xmf0Ua6atv60dW7kuZl3GjYAPT5VgfQjkrfIJhf7Kb+vIfPc+hPJW+QTC/2U39eQ1pypfRVL+4v8ZGRwz5193uMnjIkGhzOFCxsXehQsKLuVTmBKk0SpNHXWFybslKFY5N7VO2D612fXOM6YO2qIu9MylYmLwJ10fXOI6wOwsDeCqhSsC8HE6yJ10cIOVYX8MlKeaen7pOaJ1kUAq1HeCo1V6FAzLA0uYCixXbvdVEjY7rTp+jfu5xPBUxHhrSHizBVY61V7XVMMLtV9NU56zPqu3p9xs1l1FrY5wLYsWQ51sHNVTW5MqI9j08vShtLRDTi0t7XojHaXPWvU2s3Du68u5prq4FZxfBKtSr8LsZ6lXr4S7zycN6WsKXWJiVNQ63VC7FjmTYi/WTZkXhR3qz1kaSU10o5Wu3K2Zu32mumK9EmKbPK59DAl1peD4ckeidbV/IsqqornQOVlTS1dMrd6PY5uReY8lmjGOrnsHvsk+rNSy9DykvSYN6UYnY+ReUNq69q968DcxZoUj5xZo0Z4SuTL0nQrr/ZKGNZKu7UUTU6Zm9pp37pnyy90S5dGup2qK2Xe4vaykoaypc7cjI3OzIhyF29Hy7q+8lcIKPrcmg9OKk9lKht78/YbC4n0w4ZtkTm25z7nUpsRrE1WIvW5fyMUXfFmMdIl0ZaqdXNjlXJtNT5tYidLl4+c7+ENDuIrpI2a8Ilrps9rXKjpHJ1ImxDOODsI2XC1HzFrpUa9yfpJnJm9/lU611iOhmhEH0ZFXN0t0m9ZRfHNeSv+u3qzRy0rfGMaf7y+apdaWxv2+J0dGWDKXCFlbCiNkrpkR1TN0r0J1IXaMl6FJ1XdCmjMTxO5xO6nd3Utac3m3/96l1LqRdbe3p21KNKksoogFSMev7qkpE/wToZo580UBdxypA7iqEpB0uI1kRrI4UCnZSFqJtVVJbExP3SNdHzro6yISjHquxqnbyRE2IgQ+dcjnDgbC7jkhUkLU3qqnMQpGsz5cmUsjYm5qFYBBAMEcuD5Fm/xSD8LzO5gjlwfIun8Ug/C8sOiX01bf1o6918zLuNGQAeoytg+hPJW+QTC/2M39eQ+ex9CeSt8gmF/sZv68hrTlS+iqX9xf4yMjhnzr7vcZQ849IBoczg8wJABAJAAAAAAJBBBIABS9zWMV73I1qJmqquSIWRiHStguzSPikuLquZi5LHTM11z8uxPaWlymcR11vobfZaKd8DaxHSTqxclc1Nmrn5VMEWe31N2ulPbaNqPqamRGRo5ckVV6zeegXJZZ4thixbFKrVOWbSi0tkW03JtPg93V1lMxvSWra3HwW2jnJZbXxfUkZ3q9PtoY/Kmw/WTN6XzNZ+SnDHp/oFXv8ADFQ1Oqrav/1PCoNBN4kja6ru1NE5U2tYxVy852ZdA1bq/or3Hn/7ojNPDeSum+blUzfHWqv1rYdTntJpLWSy9ES6rVpxwnUyNjraOuolcuWsrEe1OtVTb7C/7bVYfxHRJVUT6OvgXijUdl5U4GsGPtHd6wfAyqq5IKike7USWNcsl60U49E9/r7HjO3rTTvbDNMkc0ea6r2rs2ocmJ8lmCYhhssS0crtNJteVnF5b1n8pP0+gi20kvaFyrbEIb8luye3r4M2huFuw1b6SSsraC3wQRJrPkfE1ERPQWK/TJgCgmfT01NWuYxckfBStRi+TNyKeppys13v2CXUtmassjZGyPiauSyNTghrNNZL1C9WS2e4sci5d9TPT8jDcnWhuE6S4fK5xS5lKak1qa+Wql1vPN7erqO3j2L3eH11C2prLLflnmbC93PBXza7+rN/3k93TBfza7+rN/3mu3vTdfouu9Xf2D3puv0XXerv7DYP7IdEeMv/AFDB/GvFf5V9lmxPd0wZ83u/q7f956OH9L+DrxcY6GOWspZZV1WLUwo1qr0Zoqmss1rucECzzW2tihTfI+ne1qedUyOGiesdZBIm9sjV9CnxV5GNGK1GXMOafU1PPJ+AjpdiMJrnEsu7I3hTJdqbiTp2WZai0Uk675IWu9h3E6TyXWpulUlB9Ta8DZ0ZayTAQEruOMkhSUIQkAhSUIQkAEJvChACQAADBHLg+RZP4rB+F5nddxgjlv8AyLN/isH4Xli0S+mrb+tHBdfMy7jRkAHqMrYPoTyVvkEwv9jN/XkPnsfQjkpu1tAmGeqOZP8AzyGtOVH6Kpf3F/jIyOGfOvu9xlIAeY0OZsADzgADzE+cAgE+YAD2gAAAAEGMdPeC6vE9np621xc7XUSqqR57ZGLvROvia21VPWW6q5uohmpZ43bnorXIqG0OkjShaMH1rLe+jmr61W6zo43oxGJwzVUXb5jHd10y2a4p/aMERyqqZKstQ1y/hPSnJpielNhhcKPR7rWzzcHrRi8nt3Se1Z7ti78jX+kNthle5lPn9Sot6ybXq6yw7ZpDxnb2o2DEFW5qbEbK7nET0nfqNLGPJ49R971U6WQsavpRDxcaXm1XquiqLVY4rQxrFR8cbs0eue/ch1cL19vtt3jq7na2XOmai61O92SOXhtyNs9B4ZXtvhdXDoc5lnqONNyz4Z/Jzffl2lX+HXNOpzUbh6vHOWXfxKLve7xe5muudxq656fFSWRXZeRC+tDeArxdcSUl1q6SWlt1M9JVkkTVWRU3Iibzt23Slh23Jq0eAqOJOqVP9pc9q09WxZo4qvDs9NFnk6SOdHaqdOrqp95TtIsU0qlYTtMJwp0001nr080nv1Yxlv8AHuMtYW2GKvGrc3Os008snv7W0ZqyzQodCx29qL5UMYaZtINwsVitk+HtXVuKK9tS5ueq3LNEROkw/LpTx1K1WuvkmS9EbU/I0ro3yT4zjlmrynOFOLbWUm89jyeaSeW1Mt9/pPZ2VZ0ZJtrhu2+kzhpyv9ZhjCLZ7XqRVNRMkSSaqKrEyzVU6zC2B8fYmp8U0S1V2qayCWZrJIp36zVRVy2Z7jwb/i3EN+pGUt2uMlTCx+u1rkTYp40Er4ZmTROVsjHI5q9CpuN96J8nlvhWCzsb2EKlWetnLLPfu2tZ7CkYpj87m8jWoScYrLZ+Jt5pIo1qcBXeKKLWe6lcrWo3PbkalWinlqrpS00UbnySTNajUTau0uN+kfGb0Vrr3MqKmSpkmR5dvxPeKCvWupKhkdQq566RNzz9Bx6BaIYrorY3FtUlCbm9aOTksnllk/J3btxyY3i1pidanUWslHY9i95uLbIeYoKeBEyRkbW5eRDsqWVobxRW4qwcyvuLGpUxyuhe9qZI/LiXqh5IxrD7jDsQrWtzlrwk08tqz7DZ9rXhcUY1ae5rYEChQhiznJIUlSEAJQAhQBvUkhCQAAACF3mCeXB8izf4pB+F5nZN5gjlxOy0Msb03WD8LyxaJfTVt/WjguvmZdxo0AD1GVsG+fI0uK12hChgVW50VVPBknBNbW2/zGhhtVyB7/lNiHDMkjU1kjrIWq7auXeuyT+UovKLZu4wScl/A1L2P8Tu2E9Wsu02w849JIPOxnx5gAAAACAAAAAAAAADDenXAVFXyuxOt1it7msRk3PJm1/Rl1mFVtVp8YoPV3mxWnfC11xRhmCK0Ikk1NNzqw62XOJllknDMwJ3PMbZ5fBys/09p6r5LtIqEsBhC9xCMZQbioycIuMVuXlbX2P0dRrbSOykr1ulbtp7c1rPN+g6HvVafGKD1d496rT4xQervO/3PMbeLlZ/p7R3PMbeLlZ/p7TY/T2Ff8jD7dIwHwS4+rPwl7zoe9Vp8YoPV3lyYJ0eUuKKzmKTE1E5W7XRpGqSK3iqIpbd6wpiKy0iVd1tNRSQK5Go9+WWa8Ninv6CnK3SdbMlVM9dFy4pkdTHL2t0LcXuG3abhGTUlqSWcVnlsX/4clnTp/DKdG4o5ZtLLyk9vezYq5YXsM2EYrNdoGTUFLEia0i5K3VT42fBTDstt0IRyvYtwrc2qqd6+RU8ymase2qpveEbja6SRI56iFWscq5JmawzaOcbRSuiXD1U5Wrlm1Wqi+RczRvJj8GvravO+xWdCWtnqqqqaee1y2783w9JctInUo1IKlbKost7jn6NheXuHQf9IV/80g9w6D/pCv8A5pSyu57jXxcrP9PaO57jXxcrP9PabR6Pwf8A52p/7mJXPhN19Rj9hl6+4dB/0hX/AM0h6WHMOaGbvc46OjrKiWZy95HLPIxHL0bTGVdgfFtDRy1dXYqqGCJutI92rk1OneeXh9ysvtC9rlaqVDMlTynNLRmle2tSdhi9eTSe2NZSSeWe3L8M0fCxJ0qsY1rSCz4xa/E3MstrobRQR0Fupo6amjTJsbEyRDvbjjpl/s0aqv7ifcV7zxvXqVKlWU6km5N7W9rb4s2tCKjFKKyQJBCnCfQ3kkISACN6hSUAAAABCkkJvAJQ1v5ed0SnwFZbUjk1qu4LIqccmMXb6XGyBpPy6MQJcNI9BY43tdHbKNFfquzyfIuaovmRPSXPQGzdzjlJ9UM5P0LZ62jqX0tWi+016AB6SK+C+tA2LkwTpTs18mkcyjSbmavL/wBJ/euXLjlnn5ixQde7tqd3QnQqfJkmn3PYfUZOMlJdR9WYnsljbJG5r2PRHNci5oqLuVCowhyQdIbcXaP22GtkT30sbGwORXKqyQZZMf5stVfInSZvPKmK4dVw28qWtXfF5d66n6VtLNSqKpBSXWAAY8+wAAAACAAAAAAAFTPeRqISBmCnUaNRpUBmwY+08WStvOBZYbfC6aaGVsuo1M1cib8jE+gjDV5dj2luEtvqKempEc6R80as25bETPebMuRFTJSlsbWrsRE8xsTBeUS6wrR+vgsaSaqa2Us9qUlk9nX2e0wd3gVK6voXkpNOOWzjluKuBGoilQNdmcKdRvQNRpUBmweLjW3SXPClzt9Oic7PTPYzPpy2GreF8I4hqMV0dA61VcT2Tt5xz4lRrURdq6242+y2bSjm255oiZ+Q2Jobyh3Oi9ncWtKkpqptTby1Xlln2rs2bt5gsVwKliVWnUnJrV9aELVbCxi/utRDkQhEJU123m82Z0hQg3kkABQRvACEgAAAAEKShCbyQDqXm40lotNXdK+VIqWkhdNK9eDWpmp8y9IWIZ8V42u+IZ1crq6qfK1FXPVZn3qeZMkNqeW9pCS22CDAdumRKq4Ik1dqrtZCi961frKmfkQ04N68meCO2tJX9ReVU2L+ldfpfqSMLiNbWmoLqAANoGOAAALo0XY1umAcY0eIrW5VdC7Vmh1lRs8a/GY7/wDt+R9FsA4rtONcK0WIrLNzlLUszVq/GjenxmOTgqLsPmCZJ0E6Wbxoxv8AzkSPq7NUuRK2iV2xyeGzoent3KULTbRJYzR5+3X+tH7y4d/B+ju7tndcy9WW5n0SB4OBMX2DG2H4r3h2uZVUsmxybnxO4te3einvHn2tRqUKjp1ItSWxp70Z1NNZoAA4iQAAAAAAACAAAAACQCCQMgANwAAG4ncQAFCIEQkAEbxvJAABCqAFJQhCQAAAAQpKkIASWbpgx/atHODai+3FUfMv6Okp0Xvp5VTY1Oriq9BXpS0iYb0dWFbpfqpEkeipTUrNss7kTc1OjpVdiGgul3SNfdJGJn3a7SLHAzNtJSNd+jp2dCdK9K8S8aH6IVsZrKtWWVBPa/5uxe19XedO7ulSWS3ng4uxBc8U4jrb9d6h09ZVyK96quaN6Gp0IibEQ8kA9FU6cKUFCCyS2JdhgW23mwAD7IAAAAAALq0bY/xNo+vaXTDle6FXZJPA9NaKdqfuub+e9OCm5uhzlBYSx0yKguckVhvbtnueokTmpV/+N65Iqr4K5L5TQgJsXNCraQaI2GNx1qi1anVJb/TxXf6Gjs0LqdHdu4H1bB87dHum7SHgqKOlt96dWULMkbSVyc9GidDc++ankVDPWEeVvYKiFkeKcOV1DNsR0tC5s0a9eq5WqiedTUGKcnWL2bboxVWPGO/wfszMrTv6U9+w2YBi+0af9Ety1UZi2GmkVM1ZU08sWXnVur7T2otLmjKX4uOLGn1qprfvKtUwTEqbynbzX/WXuOyq1N7pIvYFnd1TRt484e9fj7R3VNG3jzh/1+PtOPoq+8zP7L9xPOw4ovEFnd1TRt484e9fj7R3U9G3j1h71+PtHRV95mf2X7hzsOKLxJLO7qejbx5w96/H2kd1PRv49Ye9fj7R0VfeZn9l+4c7Dii8gWd3U9G3j1h71+PtHdU0b+POHvX4+0dFX3mZ/ZfuHOw4ovHcMyzu6no38esPevx9o7qejbx6w96/H2joq+8zP7L9w52HFF4ogzLOXSpo38ecPevx9pCaU9G3j1h71+PtHRV95mf2X7hzsOKLy3koWd3U9G3j1h71+PtIXSpo28ecPevx9o6KvvMz+y/cOdhxReSqRvLN7qejbx6w96/H2lXdT0bePWHvX4+0dFX3mZ/ZfuHOw4ovEFnd1TRt49Ye9fj7SF0qaNvHnD3r8faOir7zM/sv3DnYcUXiqhCze6po28ecP+vR9o7qujXx6w/68ztHRV95mf2X7hzsOKLzBZndW0a+PWH/AF5nacUul7RjEvfY4sn+WpR33Dom/f8A4E/sv3DnYcUXwDFN55Q+iW2I9PhP7tkb/wBOkpZXqvkcrUb7TGGMuVzQNhfFhHDFRLKuxs9xejGt69Rirn/MhlLLRHGbySVO3ku2S1V68jindUYb5G0b3NYxz3uRrWpmqquSIhgbTLylMN4U5214U5m/3ZubXSMf/ZoVy3q5Pjr1J6TVjSFpcx7jpHQ3y+S+41/7SmTmofO1PjefMsQ2RgXJjSoyVXEp67/lW70ve+5Zd7MfWxFvZTWR72OcXX/Gt/lveIq99XVSbEz2Mjbwa1u5qdR4IBtWjRp0YKnTilFbEluRjW23mwADkIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/2Q==" alt="옥곡초" class="w-full h-full object-cover"></div>
+                    <h1 class="text-sm font-bold">옥곡초 생활 앞마당</h1>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-4 py-1.5 rounded-full">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                        <span class="text-base font-black font-display" id="currentDate">1월 28일 (화)</span>
+                    </div>
+                    <button onclick="openMyClass()" class="flex items-center gap-1.5 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 px-3 py-1.5 rounded-full transition-all hover:scale-[1.02] shadow-md">
+                        <span class="text-sm">🏫</span>
+                        <span class="text-white font-bold text-xs">우리반</span>
+                        <span id="myClassLabel" class="bg-white/30 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white"></span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2 flex-1 justify-end">
+                    <div id="adminIndicator" class="hidden admin-mode-indicator"><i data-lucide="crown" class="w-3.5 h-3.5"></i><span>관리자</span></div>
+                    <button id="userClassBtn" class="hidden bg-emerald-500 hover:bg-emerald-600 px-2.5 py-1 rounded-full text-xs font-bold transition-colors">3-2</button>
+                    <div id="userBadge" class="bg-white/15 px-2.5 py-1 rounded-full text-xs flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i><span id="userName">로딩중...</span></div>
+                    <button onclick="goToLogin()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-xs font-medium transition-colors">나가기</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard-grid flex-1">
+            <!-- 1행: 25% -->
+            <div class="grid grid-cols-4 gap-2 h-full">
+                <!-- 날씨 (경산시) -->
+                <div class="card bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-100 p-3 flex flex-col overflow-hidden shadow-sm">
+                    <div class="flex items-center justify-between mb-1.5 flex-shrink-0">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-6 h-6 bg-amber-400 rounded-lg flex items-center justify-center"><i data-lucide="sun" class="w-4 h-4 text-white"></i></div>
+                            <span class="category-title text-gray-700">오늘의 날씨</span>
+                            <span class="text-[10px] text-gray-400 ml-1">경산시</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1.5 flex-1">
+                        <div class="bg-white/80 backdrop-blur rounded-lg p-2 text-center shadow-sm flex flex-col justify-center">
+                            <div class="text-[10px] text-gray-500 font-medium">9시</div>
+                            <div class="text-4xl" id="weather9">🌤️</div>
+                            <div class="text-sm font-black text-gray-800" id="temp9">-1°</div>
+                        </div>
+                        <div class="bg-white/80 backdrop-blur rounded-lg p-2 text-center shadow-sm flex flex-col justify-center">
+                            <div class="text-[10px] text-gray-500 font-medium">12시</div>
+                            <div class="text-4xl" id="weather12">☀️</div>
+                            <div class="text-sm font-black text-gray-800" id="temp12">3°</div>
+                        </div>
+                        <div class="bg-white/80 backdrop-blur rounded-lg p-2 text-center shadow-sm flex flex-col justify-center">
+                            <div class="text-[10px] text-gray-500 font-medium">15시</div>
+                            <div class="text-4xl" id="weather15">☀️</div>
+                            <div class="text-sm font-black text-gray-800" id="temp15">5°</div>
+                        </div>
+                        <div class="bg-white/80 backdrop-blur rounded-lg p-2 text-center shadow-sm flex flex-col justify-center">
+                            <div class="text-[10px] text-gray-500 font-medium">18시</div>
+                            <div class="text-4xl" id="weather18">🌙</div>
+                            <div class="text-sm font-black text-gray-800" id="temp18">1°</div>
+                        </div>
+                    </div>
+                    <div class="bg-white/80 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm mt-1.5">
+                        <span class="text-lg" id="dustEmoji">😊</span>
+                        <span class="text-xs text-gray-600">미세먼지</span>
+                        <span class="font-bold text-emerald-600 text-sm ml-auto" id="dustLevel">좋음</span>
+                    </div>
+                </div>
+
+                <!-- 급식 -->
+                <div class="card bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 p-3 flex flex-col overflow-hidden shadow-sm">
+                    <div class="flex items-center justify-between mb-2 flex-shrink-0">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-6 h-6 bg-orange-400 rounded-lg flex items-center justify-center"><i data-lucide="utensils" class="w-4 h-4 text-white"></i></div>
+                            <span class="category-title text-gray-700">오늘의 급식</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="swipers.meal?.slidePrev()" class="w-5 h-5 bg-orange-200 hover:bg-orange-300 rounded flex items-center justify-center"><i data-lucide="chevron-left" class="w-3 h-3 text-orange-600"></i></button>
+                            <button onclick="swipers.meal?.slideNext()" class="w-5 h-5 bg-orange-200 hover:bg-orange-300 rounded flex items-center justify-center"><i data-lucide="chevron-right" class="w-3 h-3 text-orange-600"></i></button>
+                        </div>
+                    </div>
+                    <div class="swiper mealSwiper flex-1 rounded-lg">
+                        <div class="swiper-wrapper" id="mealSwiperWrapper">
+                            <!-- 급식 데이터가 여기에 로드됨 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 공지 -->
+                <div class="card bg-gradient-to-br from-rose-50 via-pink-50 to-red-100 p-3 flex flex-col shadow-sm">
+                    <button class="admin-edit-btn admin-only" onclick="openEditModal('notice')"><i data-lucide="pencil" class="w-3 h-3"></i></button>
+                    <div class="flex items-center justify-between mb-2 flex-shrink-0"><div class="flex items-center gap-1.5"><div class="w-6 h-6 bg-rose-400 rounded-lg flex items-center justify-center"><i data-lucide="megaphone" class="w-4 h-4 text-white"></i></div><span class="category-title text-gray-700">오늘의 공지</span></div></div>
+                    <div class="dynamic-content text-sm" id="noticeList">
+                        <div class="bg-white/90 backdrop-blur px-3 border-l-4 border-rose-400 flex-col !items-start justify-center shadow-sm"><div class="font-bold text-rose-700 text-xs">📌 내일 종업식 10시!</div><div class="text-gray-500 text-[11px]">정장 착용, 9:30까지 등교</div></div>
+                        <div class="bg-white/80 backdrop-blur px-3 shadow-sm"><span class="text-gray-700">📚 방학 중 도서 반납</span></div>
+                        <div class="bg-white/80 backdrop-blur px-3 shadow-sm"><span class="text-gray-700">🏕️ 겨울캠프 신청 마감 D-3</span></div>
+                    </div>
+                </div>
+
+                <!-- 일정 & 행사 -->
+                <div class="card bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-100 p-3 flex flex-col shadow-sm cursor-pointer" onclick="openScheduleManager()">
+                    <div class="flex items-center justify-between mb-2 flex-shrink-0">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-6 h-6 bg-violet-400 rounded-lg flex items-center justify-center"><i data-lucide="calendar-days" class="w-4 h-4 text-white"></i></div>
+                            <span class="category-title text-gray-700">일정 & 행사</span>
+                        </div>
+                        <i data-lucide="external-link" class="w-3 h-3 text-gray-400"></i>
+                    </div>
+                    <div class="dynamic-content text-sm" id="scheduleList"></div>
+                </div>
+            </div>
+
+            <!-- 2행: 5% -->
+            <div class="grid grid-cols-2 gap-2 h-full">
+                <!-- 생활목표 -->
+                <div class="card bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 px-4 py-2 text-white flex items-center shadow-md relative">
+                    <button class="admin-edit-btn admin-only !bg-white/20 !border-white/30 !text-white hover:!bg-white hover:!text-emerald-600" onclick="openEditModal('goal')"><i data-lucide="pencil" class="w-3 h-3"></i></button>
+                    <div class="flex items-center gap-3 w-full">
+                        <div class="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg flex-shrink-0" id="goalIcon">🎯</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[10px] opacity-70" id="goalMonth">1월 생활목표</div>
+                            <div class="font-bold text-sm truncate" id="mainGoal">복도에서 뛰지 않기</div>
+                        </div>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30" onclick="prevGoal()"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                            <span class="text-xs opacity-70" id="goalCounter">1/3</span>
+                            <button class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30" onclick="nextGoal()"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 안전챌린지 -->
+                <div class="card bg-gradient-to-r from-school-blue via-blue-600 to-indigo-600 px-4 py-2 text-white flex items-center shadow-md relative">
+                    <button class="admin-edit-btn admin-only !bg-white/20 !border-white/30 !text-white hover:!bg-white hover:!text-school-blue" onclick="openChallengeEditModal()"><i data-lucide="pencil" class="w-3 h-3"></i></button>
+                    <div class="flex items-center gap-3 w-full">
+                        <div class="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg flex-shrink-0" id="challengeIcon">🚶</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[10px] opacity-70">안전 챌린지</div>
+                            <div class="font-bold text-sm truncate" id="challengeText">계단에서 천천히 걷기 🔥</div>
+                        </div>
+                        <div class="text-center px-3 py-1 bg-white/20 rounded-xl flex-shrink-0">
+                            <div class="text-xl font-black font-display" id="challengeDays">D+15</div>
+                            <div class="text-[9px] opacity-80" id="challengeLabel">사고 없는 날</div>
+                        </div>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30" onclick="prevChallenge()"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                            <span class="text-xs opacity-70" id="challengeCounter">1/3</span>
+                            <button class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30" onclick="nextChallenge()"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3행: 25% -->
+            <div class="grid grid-cols-2 gap-2 h-full">
+                <!-- 분실물 + 인기도서 (50%) -->
+                <div class="grid grid-cols-2 gap-2">
+                    <!-- 분실물 -->
+                    <div class="card bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-100 p-3 flex flex-col shadow-sm relative">
+                        <button class="admin-edit-btn admin-only" onclick="openLostApprovalModal()"><i data-lucide="check-circle" class="w-3 h-3"></i><span class="pending-badge admin-only" id="lostPendingBadge">2</span></button>
+                        <div class="flex items-center gap-1.5 mb-2 flex-shrink-0">
+                            <div class="w-5 h-5 bg-amber-400 rounded-lg flex items-center justify-center"><i data-lucide="search" class="w-3 h-3 text-white"></i></div>
+                            <span class="category-title text-gray-700">분실물</span>
+                            <span class="ml-auto text-[9px] px-1 py-0.5 bg-emerald-500 text-white rounded-full font-bold">✓15건</span>
+                        </div>
+                        <div class="flex-1 flex gap-1">
+                            <div class="flex flex-col justify-center">
+                                <button onclick="prevSlide('lost')" class="w-4 h-4 bg-amber-200 hover:bg-amber-300 rounded flex items-center justify-center"><i data-lucide="chevron-left" class="w-2.5 h-2.5 text-amber-600"></i></button>
+                            </div>
+                            <div class="flex-1 swiper lostSwiper rounded-lg">
+                                <div class="swiper-wrapper">
+                                    <div class="swiper-slide"><div class="bg-white/90 backdrop-blur rounded-lg h-full cursor-pointer shadow-sm relative overflow-hidden" onclick="openImageModal('🧥', '파란색 점퍼', '1/24', '운동장')"><div class="w-[90%] h-[90%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center text-3xl">🧥</div><div class="absolute bottom-0.5 left-0 right-0 text-center"><div class="text-[9px] font-bold text-gray-700 bg-white/80 px-1 py-0.5 rounded mx-1">파란색 점퍼</div></div></div></div>
+                                    <div class="swiper-slide"><div class="bg-white/90 backdrop-blur rounded-lg h-full cursor-pointer shadow-sm relative overflow-hidden" onclick="openImageModal('☂️', '빨간 우산', '1/23', '급식실')"><div class="w-[90%] h-[90%] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center text-3xl">☂️</div><div class="absolute bottom-0.5 left-0 right-0 text-center"><div class="text-[9px] font-bold text-gray-700 bg-white/80 px-1 py-0.5 rounded mx-1">빨간 우산</div></div></div></div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col justify-center">
+                                <button onclick="nextSlide('lost')" class="w-4 h-4 bg-amber-200 hover:bg-amber-300 rounded flex items-center justify-center"><i data-lucide="chevron-right" class="w-2.5 h-2.5 text-amber-600"></i></button>
+                            </div>
+                        </div>
+                        <button onclick="openLostModal()" class="mt-1 w-full py-1 bg-amber-400 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition-colors">+ 등록</button>
+                    </div>
+
+                    <!-- 인기도서 -->
+                    <div class="card bg-gradient-to-br from-pink-50 via-rose-50 to-red-100 p-2 flex flex-col shadow-sm relative">
+                        <button class="admin-edit-btn admin-only" onclick="openBookEditModal()"><i data-lucide="pencil" class="w-3 h-3"></i></button>
+                        <div class="flex items-center gap-1 mb-1 flex-shrink-0">
+                            <div class="w-5 h-5 bg-pink-400 rounded flex items-center justify-center"><i data-lucide="book-open" class="w-3 h-3 text-white"></i></div>
+                            <span class="category-title text-gray-700">인기도서</span>
+                            <i data-lucide="external-link" class="w-3 h-3 text-gray-400 ml-auto cursor-pointer" onclick="openLibrary()"></i>
+                        </div>
+                        <div class="flex-1 grid grid-cols-3 gap-1" id="bookList">
+                            <div class="bg-white/80 backdrop-blur rounded-lg p-1 flex flex-col shadow-sm cursor-pointer hover:bg-white h-full" onclick="openLibrary()">
+                                <div class="relative" style="height: 80%;">
+                                    <span class="absolute top-0 left-0 text-sm z-10">🥇</span>
+                                    <img src="https://via.placeholder.com/60x80?text=📚" class="w-full h-full rounded object-cover" id="book1Thumb">
+                                </div>
+                                <div class="text-center" style="height: 10%;"><div class="text-[9px] font-bold truncate" id="book1Title">어린왕자</div></div>
+                                <div class="text-center" style="height: 10%;"><div class="text-[8px] text-gray-500 truncate" id="book1Author">생텍쥐페리</div></div>
+                            </div>
+                            <div class="bg-white/80 backdrop-blur rounded-lg p-1 flex flex-col shadow-sm cursor-pointer hover:bg-white h-full" onclick="openLibrary()">
+                                <div class="relative" style="height: 80%;">
+                                    <span class="absolute top-0 left-0 text-sm z-10">🥈</span>
+                                    <img src="https://via.placeholder.com/60x80?text=📚" class="w-full h-full rounded object-cover" id="book2Thumb">
+                                </div>
+                                <div class="text-center" style="height: 10%;"><div class="text-[9px] font-bold truncate" id="book2Title">마당을 나온 암탉</div></div>
+                                <div class="text-center" style="height: 10%;"><div class="text-[8px] text-gray-500 truncate" id="book2Author">황선미</div></div>
+                            </div>
+                            <div class="bg-white/80 backdrop-blur rounded-lg p-1 flex flex-col shadow-sm cursor-pointer hover:bg-white h-full" onclick="openLibrary()">
+                                <div class="relative" style="height: 80%;">
+                                    <span class="absolute top-0 left-0 text-sm z-10">🥉</span>
+                                    <img src="https://via.placeholder.com/60x80?text=📚" class="w-full h-full rounded object-cover" id="book3Thumb">
+                                </div>
+                                <div class="text-center" style="height: 10%;"><div class="text-[9px] font-bold truncate" id="book3Title">샬롯의 거미줄</div></div>
+                                <div class="text-center" style="height: 10%;"><div class="text-[8px] text-gray-500 truncate" id="book3Author">E.B.화이트</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 칭찬 한마디 (50%) -->
+                <div class="card bg-gradient-to-br from-indigo-50 via-blue-50 to-violet-100 p-3 flex flex-col shadow-sm relative">
+                    <button class="admin-edit-btn admin-only" onclick="openPraiseApprovalModal()"><i data-lucide="check-circle" class="w-3 h-3"></i><span class="pending-badge admin-only" id="praisePendingBadge">3</span></button>
+                    <div class="flex items-center gap-1.5 mb-2 flex-shrink-0">
+                        <div class="w-6 h-6 bg-indigo-400 rounded-lg flex items-center justify-center"><i data-lucide="message-circle" class="w-4 h-4 text-white"></i></div>
+                        <span class="category-title text-gray-700">칭찬 한마디</span>
+                        <div class="ml-auto flex items-center gap-1 text-[10px] text-gray-500"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full pulse-dot"></span>자동</div>
+                        <button class="pause-btn ml-1" onclick="togglePause('praise', this)"><i data-lucide="pause" class="w-3 h-3"></i></button>
+                    </div>
+                    <div class="flex-1 flex gap-1">
+                        <div class="flex flex-col justify-center gap-1">
+                            <button onclick="prevSlide('praise')" class="w-5 h-5 bg-indigo-200 hover:bg-indigo-300 rounded flex items-center justify-center"><i data-lucide="chevron-left" class="w-3 h-3 text-indigo-600"></i></button>
+                        </div>
+                        <div class="flex-1 swiper praiseSwiper rounded-lg">
+                            <div class="swiper-wrapper">
+                                <div class="swiper-slide"><div class="bg-white/90 backdrop-blur rounded-lg p-3 text-center h-full flex flex-col justify-center shadow-sm"><div class="text-[1.75rem] text-gray-700 font-medium leading-snug">"3학년 김○○가 넘어진 친구를 부축해줬어요!"</div><div class="text-sm text-gray-500 mt-2">- 3-2 홍○○ · 오늘</div></div></div>
+                                <div class="swiper-slide"><div class="bg-white/90 backdrop-blur rounded-lg p-3 text-center h-full flex flex-col justify-center shadow-sm"><div class="text-[1.75rem] text-gray-700 font-medium leading-snug">"복도에서 쓰레기 줍는 5학년 언니 멋져요!"</div><div class="text-sm text-gray-500 mt-2">- 2-1 이○○ · 오늘</div></div></div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col justify-center gap-1">
+                            <button onclick="nextSlide('praise')" class="w-5 h-5 bg-indigo-200 hover:bg-indigo-300 rounded flex items-center justify-center"><i data-lucide="chevron-right" class="w-3 h-3 text-indigo-600"></i></button>
+                        </div>
+                    </div>
+                    <button onclick="openPraiseModal()" class="mt-1 w-full py-1.5 bg-indigo-400 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors">+ 칭찬 작성</button>
+                </div>
+            </div>
+
+            <!-- 4행: 45% -->
+            <div class="grid grid-cols-3 gap-2 h-full">
+                <!-- 시울림 -->
+                <div class="card bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-100 p-2 flex flex-col shadow-sm relative">
+                    <button class="admin-edit-btn admin-only" onclick="openGalleryUpload('poem')"><i data-lucide="plus" class="w-3 h-3"></i></button>
+                    <div class="flex items-center gap-1 mb-1 flex-shrink-0">
+                        <div class="w-5 h-5 bg-violet-400 rounded flex items-center justify-center"><i data-lucide="feather" class="w-3 h-3 text-white"></i></div>
+                        <span class="category-title text-gray-700">📝 시울림</span>
+                    </div>
+                    <div class="flex-1 flex gap-1">
+                        <div class="flex-1 swiper poemSwiper rounded-lg cursor-pointer">
+                            <div class="swiper-wrapper">
+                                <div class="swiper-slide" onclick="openGalleryModal('poem', 0)">
+                                    <div class="bg-white/90 backdrop-blur rounded-lg h-full flex flex-col shadow-sm overflow-hidden">
+                                        <div class="flex-1 flex items-center justify-center p-2 bg-gradient-to-br from-violet-100 to-purple-100">
+                                            <div class="text-center text-xs leading-relaxed text-gray-700 font-handwriting">
+                                                봄바람이 불면<br>꽃잎이 춤을 춰요<br>나도 함께 춤추고 싶어
+                                            </div>
+                                        </div>
+                                        <div class="p-1 text-center bg-white">
+                                            <div class="text-[10px] font-bold text-violet-600">「봄바람」 3-2 김○○</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="swiper-slide" onclick="openGalleryModal('poem', 1)">
+                                    <div class="bg-white/90 backdrop-blur rounded-lg h-full flex flex-col shadow-sm overflow-hidden">
+                                        <div class="flex-1 flex items-center justify-center p-2 bg-gradient-to-br from-violet-100 to-purple-100">
+                                            <div class="text-center text-xs leading-relaxed text-gray-700 font-handwriting">
+                                                별이 반짝반짝<br>꿈을 꾸는 밤<br>내일은 더 빛날 거야
+                                            </div>
+                                        </div>
+                                        <div class="p-1 text-center bg-white">
+                                            <div class="text-[10px] font-bold text-violet-600">「별빛 꿈」 5-1 이○○</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col justify-center gap-1">
+                            <button onclick="prevSlide('poem')" class="w-5 h-5 bg-violet-200 hover:bg-violet-300 rounded flex items-center justify-center"><i data-lucide="chevron-up" class="w-3 h-3 text-violet-600"></i></button>
+                            <button onclick="nextSlide('poem')" class="w-5 h-5 bg-violet-200 hover:bg-violet-300 rounded flex items-center justify-center"><i data-lucide="chevron-down" class="w-3 h-3 text-violet-600"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 솜씨자랑 -->
+                <div class="card bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100 p-2 flex flex-col shadow-sm relative">
+                    <button class="admin-edit-btn admin-only" onclick="openGalleryUpload('artwork')"><i data-lucide="plus" class="w-3 h-3"></i></button>
+                    <div class="flex items-center gap-1 mb-1 flex-shrink-0">
+                        <div class="w-5 h-5 bg-amber-400 rounded flex items-center justify-center"><i data-lucide="palette" class="w-3 h-3 text-white"></i></div>
+                        <span class="category-title text-gray-700">🎨 솜씨자랑</span>
+                    </div>
+                    <div class="flex-1 flex gap-1">
+                        <div class="flex-1 swiper artworkSwiper rounded-lg cursor-pointer">
+                            <div class="swiper-wrapper">
+                                <div class="swiper-slide" onclick="openGalleryModal('artwork', 0)">
+                                    <div class="bg-white/90 backdrop-blur rounded-lg h-full flex flex-col shadow-sm overflow-hidden">
+                                        <div class="flex-1 flex items-center justify-center bg-gradient-to-br from-amber-100 to-yellow-100">
+                                            <div class="text-5xl">🌈</div>
+                                        </div>
+                                        <div class="p-1 text-center bg-white">
+                                            <div class="text-[10px] font-bold text-amber-600">「무지개 마을」 4-1 박○○</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="swiper-slide" onclick="openGalleryModal('artwork', 1)">
+                                    <div class="bg-white/90 backdrop-blur rounded-lg h-full flex flex-col shadow-sm overflow-hidden">
+                                        <div class="flex-1 flex items-center justify-center bg-gradient-to-br from-amber-100 to-yellow-100">
+                                            <div class="text-5xl">🦋</div>
+                                        </div>
+                                        <div class="p-1 text-center bg-white">
+                                            <div class="text-[10px] font-bold text-amber-600">「나비의 꿈」 6-2 최○○</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col justify-center gap-1">
+                            <button onclick="prevSlide('artwork')" class="w-5 h-5 bg-amber-200 hover:bg-amber-300 rounded flex items-center justify-center"><i data-lucide="chevron-up" class="w-3 h-3 text-amber-600"></i></button>
+                            <button onclick="nextSlide('artwork')" class="w-5 h-5 bg-amber-200 hover:bg-amber-300 rounded flex items-center justify-center"><i data-lucide="chevron-down" class="w-3 h-3 text-amber-600"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 교내대회 수상작 -->
+                <div class="card bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-100 p-2 flex flex-col shadow-sm relative">
+                    <button class="admin-edit-btn admin-only" onclick="openGalleryUpload('award')"><i data-lucide="plus" class="w-3 h-3"></i></button>
+                    <div class="flex items-center gap-1 mb-1 flex-shrink-0">
+                        <div class="w-5 h-5 bg-emerald-400 rounded flex items-center justify-center"><i data-lucide="trophy" class="w-3 h-3 text-white"></i></div>
+                        <span class="category-title text-gray-700">🏆 수상작</span>
+                    </div>
+                    <div class="flex-1 flex gap-1">
+                        <div class="flex-1 swiper awardSwiper rounded-lg cursor-pointer">
+                            <div class="swiper-wrapper">
+                                <div class="swiper-slide" onclick="openGalleryModal('award', 0)">
+                                    <div class="bg-white/90 backdrop-blur rounded-lg h-full flex flex-col shadow-sm overflow-hidden">
+                                        <div class="flex-1 flex items-center justify-center bg-gradient-to-br from-emerald-100 to-teal-100 relative">
+                                            <div class="text-5xl">🎨</div>
+                                            <div class="absolute top-1 right-1 bg-yellow-400 text-white text-[8px] font-bold px-1 py-0.5 rounded-full">🥇</div>
+                                        </div>
+                                        <div class="p-1 text-center bg-white">
+                                            <div class="text-[10px] font-bold text-emerald-600">「우리 학교」 5-3 정○○</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="swiper-slide" onclick="openGalleryModal('award', 1)">
+                                    <div class="bg-white/90 backdrop-blur rounded-lg h-full flex flex-col shadow-sm overflow-hidden">
+                                        <div class="flex-1 flex items-center justify-center bg-gradient-to-br from-emerald-100 to-teal-100 relative">
+                                            <div class="text-5xl">✍️</div>
+                                            <div class="absolute top-1 right-1 bg-gray-400 text-white text-[8px] font-bold px-1 py-0.5 rounded-full">🥈</div>
+                                        </div>
+                                        <div class="p-1 text-center bg-white">
+                                            <div class="text-[10px] font-bold text-emerald-600">「나의 꿈」 4-2 강○○</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col justify-center gap-1">
+                            <button onclick="prevSlide('award')" class="w-5 h-5 bg-emerald-200 hover:bg-emerald-300 rounded flex items-center justify-center"><i data-lucide="chevron-up" class="w-3 h-3 text-emerald-600"></i></button>
+                            <button onclick="nextSlide('award')" class="w-5 h-5 bg-emerald-200 hover:bg-emerald-300 rounded flex items-center justify-center"><i data-lucide="chevron-down" class="w-3 h-3 text-emerald-600"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 건의함 페이지 -->
+    <div id="suggestionContainer" class="hidden h-screen flex flex-col">
+        <header class="bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-500 text-white px-4 py-2.5 flex-shrink-0 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 flex-1">
+                    <button onclick="goBackToDashboard()" class="w-8 h-8 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center hover:bg-white/30"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                    <div class="w-8 h-8 rounded-lg overflow-hidden shadow-md"><img src="icons/icon-192.png" alt="옥곡초" class="w-full h-full object-cover"></div>
+                    <h1 class="text-sm font-bold">💡 우리들의 건의함</h1>
+                </div>
+                <button onclick="openSuggestionModal()" class="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"><i data-lucide="plus" class="w-4 h-4"></i>건의하기</button>
+            </div>
+        </header>
+        <main class="flex-1 p-4 overflow-y-auto custom-scroll">
+            <div class="suggestion-board p-6 min-h-full">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="suggestionGrid">
+                    <div class="postit postit-yellow" style="transform: rotate(-2deg);"><p class="font-handwriting text-lg text-gray-800 mb-3">급식 시간이 너무 짧아요!</p><div class="flex items-center justify-between mt-auto pt-2 border-t border-black/10"><span class="text-xs text-gray-600">3-2 김○○</span><button class="flex items-center gap-1 text-xs bg-white/50 px-2 py-1 rounded-full" onclick="likeSuggestion(this)"><span>👍</span><span class="like-count">12</span></button></div></div>
+                    <div class="postit postit-green" style="transform: rotate(1deg);"><p class="font-handwriting text-lg text-gray-800 mb-3">복도에 거울 설치해주세요!</p><div class="flex items-center justify-between mt-auto pt-2 border-t border-black/10"><span class="text-xs text-gray-600">5-1 박○○</span><button class="flex items-center gap-1 text-xs bg-white/50 px-2 py-1 rounded-full" onclick="likeSuggestion(this)"><span>👍</span><span class="like-count">8</span></button></div></div>
+                    <div class="postit postit-pink" style="transform: rotate(-1deg);"><p class="font-handwriting text-lg text-gray-800 mb-3">도서관 쉬는시간 개방해주세요~📚</p><div class="flex items-center justify-between mt-auto pt-2 border-t border-black/10"><span class="text-xs text-gray-600">4-3 이○○</span><button class="flex items-center gap-1 text-xs bg-white/50 px-2 py-1 rounded-full" onclick="likeSuggestion(this)"><span>👍</span><span class="like-count">23</span></button></div></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 일정 관리 모달 -->
+    <div id="scheduleManagerModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-lg w-full shadow-2xl fade-in max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                <h2 class="text-lg font-bold flex items-center gap-2"><i data-lucide="calendar-days" class="w-5 h-5 text-violet-500"></i>일정 관리</h2>
+                <button onclick="closeScheduleManager()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button>
+            </div>
+            <div class="bg-violet-50 rounded-xl p-4 mb-4">
+                <div class="flex items-center justify-between mb-3">
+                    <button onclick="prevMonth()" class="w-8 h-8 rounded-full bg-white hover:bg-violet-100 flex items-center justify-center"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                    <span class="font-bold text-violet-700" id="calendarMonth">2026년 1월</span>
+                    <button onclick="nextMonth()" class="w-8 h-8 rounded-full bg-white hover:bg-violet-100 flex items-center justify-center"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                </div>
+                <div class="grid grid-cols-7 gap-1 text-center text-xs mb-2">
+                    <div class="text-red-500 font-bold">일</div><div class="font-bold">월</div><div class="font-bold">화</div><div class="font-bold">수</div><div class="font-bold">목</div><div class="font-bold">금</div><div class="text-blue-500 font-bold">토</div>
+                </div>
+                <div class="grid grid-cols-7 gap-1" id="calendarGrid"></div>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scroll">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-bold text-gray-700" id="selectedDateLabel">1월 28일 (화)</span>
+                    <button onclick="openAddScheduleModal()" class="text-xs bg-violet-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-violet-600 flex items-center gap-1 admin-only"><i data-lucide="plus" class="w-3 h-3"></i>일정 추가</button>
+                </div>
+                <div id="dayScheduleList" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 일정 추가 모달 -->
+    <div id="addScheduleModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-[60] p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl fade-in">
+            <h2 class="text-lg font-bold flex items-center gap-2 mb-4"><i data-lucide="plus" class="w-5 h-5 text-violet-500"></i>일정 추가</h2>
+            <div class="space-y-3">
+                <div><label class="text-sm text-gray-600 mb-1 block">날짜</label><input type="date" id="scheduleDate" class="w-full p-2 border-2 border-gray-200 rounded-lg focus:border-violet-500 focus:outline-none text-sm"></div>
+                <div><label class="text-sm text-gray-600 mb-1 block">일정 내용</label><input type="text" id="scheduleTitle" class="w-full p-2 border-2 border-gray-200 rounded-lg focus:border-violet-500 focus:outline-none text-sm" placeholder="예: 종업식"></div>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeAddScheduleModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm">취소</button>
+                <button onclick="saveSchedule()" class="flex-1 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-xl font-semibold text-sm">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 안전 챌린지 편집 모달 -->
+    <div id="challengeEditModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl fade-in max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold flex items-center gap-2"><i data-lucide="trophy" class="w-5 h-5 text-blue-500"></i>안전 챌린지 관리</h2>
+                <button onclick="closeChallengeEditModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button>
+            </div>
+            <div class="space-y-4" id="challengeEditList"></div>
+            <button onclick="addNewChallenge()" class="w-full py-2 mt-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 text-sm hover:border-blue-500 hover:text-blue-500">+ 챌린지 추가</button>
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeChallengeEditModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm">취소</button>
+                <button onclick="saveChallenges()" class="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-semibold text-sm">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 기타 모달들 -->
+    <div id="imageModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4" onclick="closeImageModal()">
+        <div class="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl fade-in" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold" id="modalTitle">분실물</h2><button onclick="closeImageModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button></div>
+            <div class="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center text-7xl mb-4" id="modalImage">🧥</div>
+            <div class="space-y-2 text-sm text-gray-600"><div class="flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4"></i><span id="modalDate">1/24</span></div><div class="flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4"></i><span id="modalLocation">운동장</span></div></div>
+            <div class="mt-4 p-3 bg-blue-50 rounded-xl text-sm text-blue-700 font-medium">📍 교무실에서 보관중입니다!</div>
+        </div>
+    </div>
+
+    <div id="praiseModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl fade-in">
+            <h2 class="text-lg font-bold flex items-center gap-2 mb-4"><i data-lucide="pen-line" class="w-5 h-5 text-school-blue"></i>칭찬 한마디 작성</h2>
+            <textarea id="praiseInput" rows="3" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-school-blue focus:outline-none resize-none text-sm" placeholder="누가 어떤 착한 일을 했나요?"></textarea>
+            <p class="text-xs text-gray-500 mt-2">선생님 승인 후 게시됩니다.</p>
+            <div class="flex gap-2 mt-4"><button onclick="closePraiseModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm">취소</button><button onclick="submitPraise()" class="flex-1 py-2.5 bg-gradient-to-r from-school-blue to-blue-600 text-white rounded-xl font-semibold text-sm">등록</button></div>
+        </div>
+    </div>
+
+    <div id="lostModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl fade-in">
+            <h2 class="text-lg font-bold flex items-center gap-2 mb-4"><i data-lucide="camera" class="w-5 h-5 text-amber-500"></i>분실물 등록</h2>
+            <input id="lostDesc" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:outline-none mb-2 text-sm" placeholder="분실물 설명">
+            <input id="lostLocation" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:outline-none mb-2 text-sm" placeholder="발견 장소">
+            <p class="text-xs text-gray-500">선생님 승인 후 게시됩니다.</p>
+            <div class="flex gap-2 mt-4"><button onclick="closeLostModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm">취소</button><button onclick="submitLost()" class="flex-1 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl font-semibold text-sm">등록</button></div>
+        </div>
+    </div>
+
+    <div id="suggestionModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl fade-in">
+            <h2 class="text-lg font-bold flex items-center gap-2 mb-4"><i data-lucide="lightbulb" class="w-5 h-5 text-emerald-500"></i>건의하기</h2>
+            <textarea id="suggestionInput" rows="4" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:outline-none resize-none font-handwriting text-lg" placeholder="학교에 바라는 점을 적어주세요!"></textarea>
+            <p class="text-xs text-gray-500 mt-2">선생님 승인 후 게시됩니다.</p>
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeSuggestionModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm">취소</button>
+                <button onclick="submitSuggestion()" class="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold text-sm">등록</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="lostApprovalModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-lg w-full shadow-2xl fade-in max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold">분실물 관리</h2><button onclick="closeLostApprovalModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button></div>
+            <div class="flex-1 overflow-y-auto">
+                <div class="approval-item pending"><span class="text-3xl">🎒</span><div class="flex-1"><div class="font-medium text-sm">검정 가방</div><div class="text-xs text-gray-500">1/28 · 체육관</div></div><div class="approve-btn accept" onclick="approveLost(this)"><i data-lucide="check" class="w-4 h-4"></i></div><div class="approve-btn reject" onclick="rejectItem(this)"><i data-lucide="x" class="w-4 h-4"></i></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="praiseApprovalModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-lg w-full shadow-2xl fade-in max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold">칭찬 관리</h2><button onclick="closePraiseApprovalModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button></div>
+            <div class="flex-1 overflow-y-auto">
+                <div class="approval-item pending"><div class="flex-1"><div class="font-medium text-sm">"6학년 형이 1학년 동생 도와줬어요"</div><div class="text-xs text-gray-500">2-3 이○○ · 오늘</div></div><div class="approve-btn accept" onclick="approvePraise(this)"><i data-lucide="check" class="w-4 h-4"></i></div><div class="approve-btn reject" onclick="rejectItem(this)"><i data-lucide="x" class="w-4 h-4"></i></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl fade-in">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold" id="editModalTitle">편집</h2><button onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button></div>
+            <div id="editModalContent"></div>
+            <div class="flex gap-2 mt-4"><button onclick="closeEditModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm">취소</button><button onclick="submitEdit()" class="flex-1 py-2.5 bg-gradient-to-r from-school-blue to-blue-600 text-white rounded-xl font-semibold text-sm">저장</button></div>
+        </div>
+    </div>
+
+    <!-- 갤러리 확대 모달 -->
+    <div id="galleryModal" class="hidden fixed inset-0 bg-black flex items-center justify-center z-50" onclick="closeGalleryModal(event)">
+        <button onclick="closeGalleryModal()" class="absolute top-4 right-4 w-14 h-14 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors z-10">
+            <i data-lucide="x" class="w-8 h-8 text-white"></i>
+        </button>
+        <div class="w-full h-full flex items-center justify-center p-8" onclick="event.stopPropagation()">
+            <div id="galleryModalContent" class="flex flex-col items-center justify-center max-w-5xl w-full">
+                <!-- 동적으로 채워짐 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 도서 편집 모달 -->
+    <div id="bookEditModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-lg w-full shadow-2xl fade-in max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold flex items-center gap-2"><i data-lucide="book-open" class="w-5 h-5 text-pink-500"></i>인기도서 관리</h2>
+                <button onclick="closeBookEditModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button>
+            </div>
+            <div class="space-y-4">
+                <!-- 도서 검색 -->
+                <div class="bg-pink-50 p-3 rounded-xl">
+                    <label class="text-xs font-bold text-pink-600 mb-2 block">📚 도서 검색 (네이버)</label>
+                    <div class="flex gap-2">
+                        <input id="bookSearchInput" class="flex-1 p-2 border-2 border-pink-200 rounded-lg text-sm focus:border-pink-400 focus:outline-none" placeholder="도서명 입력">
+                        <button onclick="searchBook()" class="px-4 py-2 bg-pink-400 text-white rounded-lg text-sm font-bold hover:bg-pink-500">검색</button>
+                    </div>
+                    <div id="bookSearchResults" class="mt-2 max-h-40 overflow-y-auto hidden"></div>
+                </div>
+                <!-- 등록된 도서 목록 -->
+                <div class="space-y-2" id="registeredBooks">
+                    <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                        <span class="text-xl">🥇</span>
+                        <img src="https://via.placeholder.com/40x50?text=📚" class="w-10 h-12 rounded object-cover">
+                        <div class="flex-1">
+                            <input class="w-full p-1 border rounded text-sm font-bold" value="어린왕자">
+                            <input class="w-full p-1 border rounded text-xs text-gray-500 mt-1" value="생텍쥐페리">
+                        </div>
+                        <button class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                        <span class="text-xl">🥈</span>
+                        <img src="https://via.placeholder.com/40x50?text=📚" class="w-10 h-12 rounded object-cover">
+                        <div class="flex-1">
+                            <input class="w-full p-1 border rounded text-sm font-bold" value="마당을 나온 암탉">
+                            <input class="w-full p-1 border rounded text-xs text-gray-500 mt-1" value="황선미">
+                        </div>
+                        <button class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                        <span class="text-xl">🥉</span>
+                        <img src="https://via.placeholder.com/40x50?text=📚" class="w-10 h-12 rounded object-cover">
+                        <div class="flex-1">
+                            <input class="w-full p-1 border rounded text-sm font-bold" value="샬롯의 거미줄">
+                            <input class="w-full p-1 border rounded text-xs text-gray-500 mt-1" value="E.B.화이트">
+                        </div>
+                        <button class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeBookEditModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm">취소</button>
+                <button onclick="saveBooks()" class="flex-1 py-2.5 bg-gradient-to-r from-pink-400 to-rose-500 text-white rounded-xl font-semibold text-sm">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 갤러리 등록 모달 -->
+    <div id="galleryUploadModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-5 max-w-lg w-full shadow-2xl fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold" id="galleryUploadTitle">작품 등록</h2>
+                <button onclick="closeGalleryUploadModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">작품 제목</label>
+                    <input id="galleryTitle" class="w-full p-2 border-2 border-gray-200 rounded-lg text-sm focus:border-violet-400 focus:outline-none" placeholder="예: 봄바람">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 mb-1 block">학년-반</label>
+                        <input id="galleryClass" class="w-full p-2 border-2 border-gray-200 rounded-lg text-sm focus:border-violet-400 focus:outline-none" placeholder="예: 3-2">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 mb-1 block">작가 이름</label>
+                        <input id="galleryAuthor" class="w-full p-2 border-2 border-gray-200 rounded-lg text-sm focus:border-violet-400 focus:outline-none" placeholder="예: 김○○">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">이미지 업로드</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-violet-400 cursor-pointer" onclick="document.getElementById('galleryImageInput').click()">
+                        <input type="file" id="galleryImageInput" accept="image/*" class="hidden" onchange="previewGalleryImage(event)">
+                        <div id="galleryImagePreview" class="hidden">
+                            <img id="galleryPreviewImg" class="max-h-40 mx-auto rounded-lg">
+                        </div>
+                        <div id="galleryUploadPlaceholder">
+                            <i data-lucide="upload" class="w-8 h-8 mx-auto text-gray-400 mb-2"></i>
+                            <p class="text-sm text-gray-500">클릭하여 이미지 선택</p>
+                            <p class="text-xs text-gray-400 mt-1">또는 구글 드라이브 URL 입력</p>
+                        </div>
+                    </div>
+                    <input id="galleryImageUrl" class="w-full p-2 border-2 border-gray-200 rounded-lg text-sm mt-2 focus:border-violet-400 focus:outline-none" placeholder="구글 드라이브 이미지 URL (선택)">
+                </div>
+                <div id="galleryAwardSection" class="hidden">
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">수상 정보</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input id="galleryContest" class="p-2 border-2 border-gray-200 rounded-lg text-sm" placeholder="대회명">
+                        <select id="galleryAward" class="p-2 border-2 border-gray-200 rounded-lg text-sm">
+                            <option value="최우수">🥇 최우수</option>
+                            <option value="우수">🥈 우수</option>
+                            <option value="장려">🥉 장려</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeGalleryUploadModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm">취소</button>
+                <button onclick="submitGalleryUpload()" class="flex-1 py-2.5 bg-gradient-to-r from-violet-400 to-purple-500 text-white rounded-xl font-semibold text-sm">등록</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); });
+
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyCks0UMHz6vpUDoL1YXCw2pbZSEDycRzgI",
+            authDomain: "okgok-safety-dashboard.firebaseapp.com",
+            databaseURL: "https://okgok-safety-dashboard-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "okgok-safety-dashboard",
+            storageBucket: "okgok-safety-dashboard.firebasestorage.app",
+            messagingSenderId: "161241319820",
+            appId: "1:161241319820:web:f8cb781485e205182e6ea9"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // 앱 설정
+        const APP_CONFIG = {
+            ALLOWED_DOMAIN: 'gsok.es',
+            ADMIN_EMAIL: 'okgok2587@gsok.es',
+            DEV_MODE: (() => {
+                const params = new URLSearchParams(window.location.search.toLowerCase());
+                return params.get('dev') === 'true';
+            })()
+        };
+
+        // 날씨 API 설정 (기상청)
+        const WEATHER_CONFIG = {
+            AUTH_KEY: 'YQ2tARWZSDiNrQEVmVg4pg',
+            // 단기예보 (3시간 간격 예보)
+            FORECAST_URL: 'https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getVilageFcst',
+            // 초단기실황 (실시간 관측값)
+            REALTIME_URL: 'https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getUltraSrtNcst',
+            CORS_PROXY: 'https://corsproxy.io/?',
+            NX: 91,   // 격자 X (경산시 중방동)
+            NY: 89    // 격자 Y (경산시 중방동)
+        };
+
+        // 사용자 상태
+        let currentUser = null;
+        let userRole = 'guest'; // guest, student, teacher, admin
+        let userClass = null;   // 예: '3-2'
+        let isAdmin = false;
+        const TODAY = new Date();
+
+        // 생활목표
+        const goals = [
+            { icon: '🎯', text: '복도에서 뛰지 않기' },
+            { icon: '🍚', text: '급식 남기지 않기' },
+            { icon: '👋', text: '친구에게 인사하기' }
+        ];
+        let goalIndex = 0;
+
+        // 안전 챌린지 데이터 (시작일 기준으로 D+ 자동 계산)
+        let challenges = [
+            { icon: '🚶', text: '계단에서 천천히 걷기 🔥', startDate: '2026-01-13', label: '사고 없는 날' },
+            { icon: '🏃', text: '복도에서 뛰지 않기 💪', startDate: '2026-01-20', label: '충돌 없는 날' },
+            { icon: '💙', text: '학교폭력 ZERO 💙', startDate: '2025-12-29', label: '평화로운 날' }
+        ];
+        let challengeIndex = 0;
+
+        // 일정 데이터 (나이스 API에서 로드)
+        let schedules = [];
+        let currentCalendarDate = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+        let selectedDate = new Date(TODAY);
+
+        let swipers = {};
+
+        // NEIS API 설정
+        const NEIS_CONFIG = {
+            KEY: '8faa142720cd4d44af4af420fcf9ec4f',
+            ATPT_OFCDC_SC_CODE: 'R10',
+            SD_SCHUL_CODE: '8851073'
+        };
+
+        // D+ 일수 계산
+        function calculateDays(startDateStr) {
+            const start = new Date(startDateStr);
+            const diff = Math.floor((TODAY - start) / (1000 * 60 * 60 * 24));
+            return diff >= 0 ? `D+${diff}` : `D${diff}`;
+        }
+
+        // 로그인 에러 표시
+        function showLoginError(msg) {
+            const toast = document.getElementById('loginErrorToast');
+            document.getElementById('loginErrorMsg').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        // Google 로그인
+        async function googleLogin() {
+            // 개발자 모드 체크
+            if (APP_CONFIG.DEV_MODE) {
+                currentUser = { email: 'dev@gsok.es', displayName: '개발자 테스트' };
+                userRole = 'admin';
+                userClass = '3-2';
+                isAdmin = true;
+                showDashboard();
+                document.getElementById('userName').textContent = '🔧 DEV';
+                document.getElementById('userClassBtn').textContent = '3-2';
+                updateAdminUI();
+                return;
+            }
+
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({ hd: APP_CONFIG.ALLOWED_DOMAIN });
+                
+                const result = await auth.signInWithPopup(provider);
+                const user = result.user;
+                
+                // 도메인 검증
+                if (!user.email.endsWith('@' + APP_CONFIG.ALLOWED_DOMAIN)) {
+                    await auth.signOut();
+                    showLoginError('@gsok.es 계정으로 로그인해주세요');
+                    return;
+                }
+
+                currentUser = user;
+                
+                // 사용자 정보 조회
+                const userSnapshot = await db.ref('users/' + user.uid).once('value');
+                const userData = userSnapshot.val();
+
+                if (userData) {
+                    userRole = userData.role || 'student';
+                    userClass = userData.class || null;
+                    isAdmin = (userRole === 'admin' || user.email === APP_CONFIG.ADMIN_EMAIL);
+                } else if (user.email === APP_CONFIG.ADMIN_EMAIL) {
+                    // 관리자 이메일이면 자동으로 관리자 등록
+                    userRole = 'admin';
+                    isAdmin = true;
+                    await db.ref('users/' + user.uid).set({
+                        email: user.email,
+                        name: user.displayName,
+                        role: 'admin',
+                        createdAt: Date.now()
+                    });
+                } else {
+                    // 등록되지 않은 사용자
+                    showLoginError('등록되지 않은 계정입니다. 담임선생님께 문의하세요.');
+                    await auth.signOut();
+                    return;
+                }
+
+                showDashboard();
+                updateUserDisplay();
+                updateAdminUI();
+
+            } catch (error) {
+                console.error('로그인 에러:', error);
+                if (error.code === 'auth/popup-closed-by-user') {
+                    return; // 사용자가 팝업 닫음
+                }
+                showLoginError('로그인 중 오류가 발생했습니다');
+            }
+        }
+
+        // 사용자 표시 업데이트
+        function updateUserDisplay() {
+            const nameEl = document.getElementById('userName');
+            const classBtn = document.getElementById('userClassBtn');
+            
+            if (currentUser) {
+                const displayName = currentUser.displayName || currentUser.email.split('@')[0];
+                nameEl.textContent = displayName;
+                
+                if (userClass) {
+                    classBtn.textContent = userClass;
+                    classBtn.classList.remove('hidden');
+                } else {
+                    classBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        // 로그아웃
+        async function goToLogin() { 
+            await auth.signOut();
+            currentUser = null;
+            userRole = 'guest';
+            userClass = null;
+            isAdmin = false;
+            
+            document.getElementById('loginContainer').classList.remove('hidden'); 
+            document.getElementById('dashboardContainer').classList.add('hidden'); 
+            document.getElementById('suggestionContainer').classList.add('hidden'); 
+            destroySwipers(); 
+            if (goalInterval) clearInterval(goalInterval); 
+        }
+
+        function updateAdminUI() { 
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none'); 
+            document.getElementById('adminIndicator').classList.toggle('hidden', !isAdmin);
+            lucide.createIcons(); 
+        }
+
+        async function showDashboard() {
+            document.getElementById('loginContainer').classList.add('hidden');
+            document.getElementById('dashboardContainer').classList.remove('hidden');
+            updateDate();
+            await Promise.all([loadMealInfo(), loadSchoolSchedule(), loadWeather()]);
+            initSwipers();
+            initGoalSlider();
+            updateChallenge();
+            updateScheduleDisplay();
+            lucide.createIcons();
+        }
+
+        function goToLogin() { 
+            document.getElementById('loginContainer').classList.remove('hidden'); 
+            document.getElementById('dashboardContainer').classList.add('hidden'); 
+            document.getElementById('suggestionContainer').classList.add('hidden'); 
+            destroySwipers(); 
+            if (goalInterval) clearInterval(goalInterval); 
+        }
+
+        function updateDate() { 
+            const days = ['일', '월', '화', '수', '목', '금', '토']; 
+            document.getElementById('currentDate').textContent = `${TODAY.getMonth() + 1}월 ${TODAY.getDate()}일 (${days[TODAY.getDay()]})`; 
+        }
+
+        // 날씨 정보 로드 (초단기실황 + 단기예보)
+        async function loadWeather() {
+            const now = new Date();
+            const hour = now.getHours();
+            const todayStr = `${TODAY.getFullYear()}${String(TODAY.getMonth() + 1).padStart(2, '0')}${String(TODAY.getDate()).padStart(2, '0')}`;
+
+            // 현재 시간에 해당하는 슬롯 찾기 (9, 12, 15, 18)
+            const currentSlot = hour < 9 ? '9' : hour < 12 ? '9' : hour < 15 ? '12' : hour < 18 ? '15' : '18';
+
+            try {
+                // 1. 초단기실황 API로 현재 기온 가져오기
+                const realtimeBaseTime = String(hour).padStart(2, '0') + '00';
+                const realtimeUrl = `${WEATHER_CONFIG.REALTIME_URL}?authKey=${WEATHER_CONFIG.AUTH_KEY}&pageNo=1&numOfRows=100&dataType=JSON&base_date=${todayStr}&base_time=${realtimeBaseTime}&nx=${WEATHER_CONFIG.NX}&ny=${WEATHER_CONFIG.NY}`;
+                const realtimeProxyUrl = WEATHER_CONFIG.CORS_PROXY + encodeURIComponent(realtimeUrl);
+
+                const realtimeResponse = await fetch(realtimeProxyUrl);
+                const realtimeData = await realtimeResponse.json();
+
+                if (realtimeData.response?.body?.items?.item) {
+                    const items = realtimeData.response.body.items.item;
+                    let currentTemp = '-';
+                    let currentPty = 0;
+
+                    items.forEach(item => {
+                        if (item.category === 'T1H') currentTemp = item.obsrValue; // 실시간 기온
+                        if (item.category === 'PTY') currentPty = parseInt(item.obsrValue) || 0;
+                    });
+
+                    // 현재 시간대 슬롯에 실시간 기온 표시
+                    if (currentTemp !== '-') {
+                        document.getElementById(`temp${currentSlot}`).textContent = `${currentTemp}°`;
+                        // 현재 날씨 아이콘
+                        let icon = '☀️';
+                        if (currentPty > 0) {
+                            if (currentPty === 1 || currentPty === 4) icon = '🌧️';
+                            else if (currentPty === 2) icon = '🌨️';
+                            else if (currentPty === 3) icon = '❄️';
+                        }
+                        document.getElementById(`weather${currentSlot}`).textContent = icon;
+                    }
+                }
+            } catch (error) {
+                console.error('초단기실황 로딩 실패:', error);
+            }
+
+            try {
+                // 2. 단기예보 API로 나머지 시간대 예보 가져오기
+                const baseTimes = ['0200', '0500', '0800', '1100', '1400', '1700', '2000', '2300'];
+                const baseHours = [2, 5, 8, 11, 14, 17, 20, 23];
+
+                let baseTime = '0200';
+                let baseDate = new Date(now);
+
+                for (let i = baseHours.length - 1; i >= 0; i--) {
+                    if (hour >= baseHours[i] + 1) {
+                        baseTime = baseTimes[i];
+                        break;
+                    }
+                }
+
+                if (hour < 3) {
+                    baseDate.setDate(baseDate.getDate() - 1);
+                    baseTime = '2300';
+                }
+
+                const baseDateStr = `${baseDate.getFullYear()}${String(baseDate.getMonth() + 1).padStart(2, '0')}${String(baseDate.getDate()).padStart(2, '0')}`;
+                const forecastUrl = `${WEATHER_CONFIG.FORECAST_URL}?authKey=${WEATHER_CONFIG.AUTH_KEY}&pageNo=1&numOfRows=1000&dataType=JSON&base_date=${baseDateStr}&base_time=${baseTime}&nx=${WEATHER_CONFIG.NX}&ny=${WEATHER_CONFIG.NY}`;
+                const forecastProxyUrl = WEATHER_CONFIG.CORS_PROXY + encodeURIComponent(forecastUrl);
+
+                const response = await fetch(forecastProxyUrl);
+                const data = await response.json();
+
+                if (data.response?.body?.items?.item) {
+                    const items = data.response.body.items.item;
+                    const targetTimes = ['0900', '1200', '1500', '1800'];
+                    const weatherData = {};
+
+                    items.forEach(item => {
+                        if (item.fcstDate === todayStr && targetTimes.includes(item.fcstTime)) {
+                            const time = item.fcstTime;
+                            if (!weatherData[time]) weatherData[time] = {};
+                            weatherData[time][item.category] = item.fcstValue;
+                        }
+                    });
+
+                    const timeMapping = { '0900': '9', '1200': '12', '1500': '15', '1800': '18' };
+
+                    for (const [fcstTime, timeId] of Object.entries(timeMapping)) {
+                        // 현재 슬롯은 실시간 데이터 사용하므로 건너뜀
+                        if (timeId === currentSlot) continue;
+
+                        const data = weatherData[fcstTime];
+                        if (data) {
+                            const temp = data.TMP || '-';
+                            const sky = parseInt(data.SKY) || 1;
+                            const pty = parseInt(data.PTY) || 0;
+
+                            let icon = '☀️';
+                            if (pty > 0) {
+                                if (pty === 1 || pty === 4) icon = '🌧️';
+                                else if (pty === 2) icon = '🌨️';
+                                else if (pty === 3) icon = '❄️';
+                            } else {
+                                if (sky === 1) icon = timeId === '18' ? '🌙' : '☀️';
+                                else if (sky === 3) icon = '⛅';
+                                else if (sky === 4) icon = '☁️';
+                            }
+
+                            document.getElementById(`weather${timeId}`).textContent = icon;
+                            document.getElementById(`temp${timeId}`).textContent = `${temp}°`;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('단기예보 로딩 실패:', error);
+            }
+
+            // 미세먼지 로드 (에어코리아)
+            await loadDust();
+        }
+
+        // 미세먼지 정보 로드 (에어코리아 API)
+        async function loadDust() {
+            try {
+                const dustUrl = `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty?serviceKey=${WEATHER_CONFIG.API_KEY}&returnType=json&numOfRows=1&pageNo=1&stationName=${encodeURIComponent('중방동')}&dataTerm=DAILY&ver=1.0`;
+                
+                const response = await fetch(dustUrl);
+                const data = await response.json();
+                
+                if (data.response?.body?.items?.length > 0) {
+                    const item = data.response.body.items[0];
+                    const pm10 = parseInt(item.pm10Value) || 0;
+                    const pm10Grade = parseInt(item.pm10Grade) || 1;
+                    
+                    // 등급별 표시
+                    let emoji = '😊';
+                    let level = '좋음';
+                    let color = 'text-emerald-600';
+                    
+                    if (pm10Grade === 1 || pm10 <= 30) {
+                        emoji = '😊'; level = '좋음'; color = 'text-emerald-600';
+                    } else if (pm10Grade === 2 || pm10 <= 80) {
+                        emoji = '🙂'; level = '보통'; color = 'text-sky-600';
+                    } else if (pm10Grade === 3 || pm10 <= 150) {
+                        emoji = '😷'; level = '나쁨'; color = 'text-orange-500';
+                    } else {
+                        emoji = '🤢'; level = '매우나쁨'; color = 'text-red-600';
+                    }
+                    
+                    document.getElementById('dustEmoji').textContent = emoji;
+                    const dustLevelEl = document.getElementById('dustLevel');
+                    dustLevelEl.textContent = level;
+                    dustLevelEl.className = `font-bold text-sm ml-auto ${color}`;
+                }
+            } catch (error) {
+                console.error('미세먼지 로딩 실패:', error);
+            }
+        }
+
+        // 급식 정보 로드
+        // 알러지 정보 (초등학생 언어)
+        const ALLERGY_INFO = {
+            1: '🥚 달걀', 2: '🥛 우유', 3: '🌾 메밀', 4: '🥜 땅콩', 5: '🫘 콩',
+            6: '🍞 밀', 7: '🐟 고등어', 8: '🦀 게', 9: '🦐 새우', 10: '🐷 돼지고기',
+            11: '🍑 복숭아', 12: '🍅 토마토', 13: '🧪 아황산', 14: '🌰 호두', 15: '🐔 닭고기',
+            16: '🐄 소고기', 17: '🦑 오징어', 18: '🐚 조개'
+        };
+
+        async function loadMealInfo() {
+            const container = document.getElementById('mealSwiperWrapper');
+            try {
+                const dateStr = `${TODAY.getFullYear()}${String(TODAY.getMonth() + 1).padStart(2, '0')}${String(TODAY.getDate()).padStart(2, '0')}`;
+                const url = `https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${NEIS_CONFIG.KEY}&Type=json&ATPT_OFCDC_SC_CODE=${NEIS_CONFIG.ATPT_OFCDC_SC_CODE}&SD_SCHUL_CODE=${NEIS_CONFIG.SD_SCHUL_CODE}&MLSV_YMD=${dateStr}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.mealServiceDietInfo && data.mealServiceDietInfo[1]?.row?.length > 0) {
+                    const meal = data.mealServiceDietInfo[1].row[0];
+                    const rawDishes = meal.DDISH_NM.split('<br/>');
+                    
+                    // 메뉴 이름만 추출 (알러지 코드 제거)
+                    const dishes = rawDishes.map(d => d.replace(/\([^)]*\)/g, '').replace(/\d+\./g, '').trim()).filter(d => d);
+                    
+                    // 알러지 코드 추출
+                    const allergySet = new Set();
+                    rawDishes.forEach(d => {
+                        const matches = d.match(/\(([^)]+)\)/g);
+                        if (matches) {
+                            matches.forEach(m => {
+                                const nums = m.replace(/[()]/g, '').split('.').filter(n => n);
+                                nums.forEach(n => {
+                                    const num = parseInt(n);
+                                    if (num >= 1 && num <= 18) allergySet.add(num);
+                                });
+                            });
+                        }
+                    });
+                    
+                    // 알러지 정보 문자열 생성
+                    const allergyList = Array.from(allergySet).sort((a,b) => a-b).map(n => ALLERGY_INFO[n]).filter(a => a);
+                    
+                    container.innerHTML = `
+                        <div class="swiper-slide">
+                            <div class="dynamic-content text-sm">
+                                ${dishes.slice(0, 5).map(d => `<div class="bg-white/80 backdrop-blur px-3 font-medium shadow-sm">${d}</div>`).join('')}
+                            </div>
+                        </div>
+                        <div class="swiper-slide">
+                            <div class="h-full flex flex-col">
+                                <div class="text-xs font-bold text-orange-600 mb-1 text-center">⚠️ 오늘 급식 알러지 정보</div>
+                                <div class="flex-1 grid grid-cols-2 gap-1 text-xs overflow-y-auto">
+                                    ${allergyList.length > 0 
+                                        ? allergyList.map(a => `<div class="bg-orange-100 px-2 py-1 rounded text-center font-medium">${a}</div>`).join('')
+                                        : '<div class="col-span-2 text-center text-gray-400 py-4">알러지 정보 없음</div>'
+                                    }
+                                </div>
+                                <div class="text-[9px] text-gray-400 text-center mt-1">← 메뉴 보기</div>
+                            </div>
+                        </div>`;
+                } else {
+                    container.innerHTML = `
+                        <div class="swiper-slide">
+                            <div class="flex-1 flex items-center justify-center">
+                                <div class="text-center">
+                                    <div class="text-4xl mb-2">🍽️</div>
+                                    <div class="text-gray-500 font-medium">오늘은 급식 없는 날</div>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+            } catch (error) {
+                console.error('급식 로딩 실패:', error);
+                container.innerHTML = `
+                    <div class="swiper-slide">
+                        <div class="flex-1 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">🍽️</div>
+                                <div class="text-gray-500 font-medium">급식 정보 로딩 실패</div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            if (swipers.meal) swipers.meal.destroy(true, true);
+            swipers.meal = new Swiper('.mealSwiper', {
+                loop: false
+            });
+        }
+
+        // 학사일정 로드 (나이스 API)
+        async function loadSchoolSchedule() {
+            try {
+                const year = TODAY.getFullYear();
+                const month = TODAY.getMonth() + 1;
+                const fromDate = `${year}${String(month).padStart(2, '0')}01`;
+                const toDate = `${year}${String(month + 2).padStart(2, '0')}28`;
+
+                const url = `https://open.neis.go.kr/hub/SchoolSchedule?KEY=${NEIS_CONFIG.KEY}&Type=json&ATPT_OFCDC_SC_CODE=${NEIS_CONFIG.ATPT_OFCDC_SC_CODE}&SD_SCHUL_CODE=${NEIS_CONFIG.SD_SCHUL_CODE}&AA_FROM_YMD=${fromDate}&AA_TO_YMD=${toDate}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.SchoolSchedule && data.SchoolSchedule[1]?.row) {
+                    const events = data.SchoolSchedule[1].row;
+                    // 중요 일정만 필터링 (방학, 휴업일 제외)
+                    const importantEvents = ['개학', '졸업식', '종업식', '입학식', '운동회', '현장체험', '소풍', '수학여행', '재량휴업일'];
+
+                    schedules = events
+                        .filter(e => {
+                            const name = e.EVENT_NM;
+                            // 중요 일정이거나, 방학/휴업일이 아닌 경우
+                            return importantEvents.some(k => name.includes(k)) ||
+                                   (!name.includes('방학') && !name.includes('휴업일') && !name.includes('공휴일') && name !== '설날');
+                        })
+                        .map(e => ({
+                            date: `${e.AA_YMD.slice(0,4)}-${e.AA_YMD.slice(4,6)}-${e.AA_YMD.slice(6,8)}`,
+                            title: e.EVENT_NM,
+                            isHoliday: e.SBTR_DD_SC_NM === '공휴일' || e.SBTR_DD_SC_NM === '휴업일'
+                        }))
+                        // 중복 제거
+                        .filter((v, i, a) => a.findIndex(t => t.date === v.date && t.title === v.title) === i);
+
+                    console.log('학사일정 로드 완료:', schedules.length + '건');
+                }
+            } catch (error) {
+                console.error('학사일정 로드 실패:', error);
+                // 실패 시 기본 일정 사용
+                schedules = [];
+            }
+        }
+
+        // 안전 챌린지
+        function updateChallenge() {
+            const c = challenges[challengeIndex];
+            document.getElementById('challengeIcon').textContent = c.icon;
+            document.getElementById('challengeText').textContent = c.text;
+            document.getElementById('challengeDays').textContent = calculateDays(c.startDate);
+            document.getElementById('challengeLabel').textContent = c.label;
+            document.getElementById('challengeCounter').textContent = `${challengeIndex + 1}/${challenges.length}`;
+        }
+        function prevChallenge() { challengeIndex = (challengeIndex - 1 + challenges.length) % challenges.length; updateChallenge(); }
+        function nextChallenge() { challengeIndex = (challengeIndex + 1) % challenges.length; updateChallenge(); }
+
+        // 챌린지 편집 모달
+        function openChallengeEditModal() {
+            const container = document.getElementById('challengeEditList');
+            container.innerHTML = challenges.map((c, i) => `
+                <div class="p-4 bg-blue-50 rounded-xl border border-blue-200" data-index="${i}">
+                    <div class="flex items-center gap-2 mb-3">
+                        <input type="text" value="${c.icon}" class="w-12 p-2 border rounded-lg text-center text-xl challenge-icon">
+                        <input type="text" value="${c.text}" class="flex-1 p-2 border rounded-lg text-sm challenge-text" placeholder="챌린지 내용">
+                        <button onclick="deleteChallenge(${i})" class="w-8 h-8 bg-red-100 text-red-500 rounded-full flex items-center justify-center hover:bg-red-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-gray-500">시작일:</label>
+                        <input type="date" value="${c.startDate}" class="p-1.5 border rounded-lg text-sm challenge-start">
+                        <label class="text-xs text-gray-500 ml-2">라벨:</label>
+                        <input type="text" value="${c.label}" class="flex-1 p-1.5 border rounded-lg text-sm challenge-label" placeholder="사고 없는 날">
+                    </div>
+                    <div class="mt-2 text-xs text-blue-600 font-medium">현재: ${calculateDays(c.startDate)}</div>
+                </div>
+            `).join('');
+            document.getElementById('challengeEditModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function closeChallengeEditModal() { document.getElementById('challengeEditModal').classList.add('hidden'); }
+        function deleteChallenge(index) { 
+            if (challenges.length > 1 && confirm('삭제하시겠습니까?')) { 
+                challenges.splice(index, 1); 
+                if (challengeIndex >= challenges.length) challengeIndex = 0;
+                openChallengeEditModal(); 
+            } 
+        }
+        function addNewChallenge() {
+            challenges.push({ icon: '⭐', text: '새 챌린지', startDate: TODAY.toISOString().split('T')[0], label: '진행 중' });
+            openChallengeEditModal();
+        }
+        function saveChallenges() {
+            const items = document.querySelectorAll('#challengeEditList > div');
+            items.forEach((item, i) => {
+                challenges[i].icon = item.querySelector('.challenge-icon').value;
+                challenges[i].text = item.querySelector('.challenge-text').value;
+                challenges[i].startDate = item.querySelector('.challenge-start').value;
+                challenges[i].label = item.querySelector('.challenge-label').value;
+            });
+            closeChallengeEditModal();
+            updateChallenge();
+            alert('저장되었습니다!');
+        }
+
+        // 생활목표
+        // 생활목표 네비게이션
+        function prevGoal() { goalIndex = (goalIndex - 1 + goals.length) % goals.length; updateGoal(); }
+        function nextGoal() { goalIndex = (goalIndex + 1) % goals.length; updateGoal(); }
+        function updateGoal() { 
+            const g = goals[goalIndex];
+            document.getElementById('goalIcon').textContent = g.icon;
+            document.getElementById('mainGoal').textContent = g.text; 
+            document.getElementById('goalCounter').textContent = `${goalIndex + 1}/${goals.length}`;
+            document.getElementById('goalMonth').textContent = `${TODAY.getMonth() + 1}월 생활목표`;
+        }
+        function initGoalSlider() { updateGoal(); }
+
+        // Swiper
+        function initSwipers() {
+            setTimeout(() => { swipers.lost = new Swiper('.lostSwiper', { loop: true, autoplay: { delay: 7000 } }); }, 500);
+            setTimeout(() => { swipers.praise = new Swiper('.praiseSwiper', { loop: true, autoplay: { delay: 6000 } }); }, 1000);
+            // 갤러리 Swiper (vertical)
+            setTimeout(() => { swipers.poem = new Swiper('.poemSwiper', { direction: 'vertical', loop: true, autoplay: { delay: 8000 } }); }, 1500);
+            setTimeout(() => { swipers.artwork = new Swiper('.artworkSwiper', { direction: 'vertical', loop: true, autoplay: { delay: 8000 } }); }, 2000);
+            setTimeout(() => { swipers.award = new Swiper('.awardSwiper', { direction: 'vertical', loop: true, autoplay: { delay: 8000 } }); }, 2500);
+        }
+        function destroySwipers() { Object.values(swipers).forEach(s => { if (s?.destroy) s.destroy(true, true); }); swipers = {}; }
+        function togglePause(name, btn) { const s = swipers[name]; if (!s?.autoplay) return; if (s.autoplay.running) { s.autoplay.stop(); btn.classList.add('paused'); btn.innerHTML = '<i data-lucide="play" class="w-3 h-3"></i>'; } else { s.autoplay.start(); btn.classList.remove('paused'); btn.innerHTML = '<i data-lucide="pause" class="w-3 h-3"></i>'; } lucide.createIcons(); }
+
+        // 일정 관리
+        function openScheduleManager() { document.getElementById('scheduleManagerModal').classList.remove('hidden'); renderCalendar(); updateAdminUI(); lucide.createIcons(); }
+        function closeScheduleManager() { document.getElementById('scheduleManagerModal').classList.add('hidden'); }
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear(), month = currentCalendarDate.getMonth();
+            document.getElementById('calendarMonth').textContent = `${year}년 ${month + 1}월`;
+            const firstDay = new Date(year, month, 1).getDay(), lastDate = new Date(year, month + 1, 0).getDate();
+            let html = '';
+            for (let i = 0; i < firstDay; i++) html += '<div class="calendar-day text-gray-300"></div>';
+            for (let d = 1; d <= lastDate; d++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const hasEvent = schedules.some(s => s.date === dateStr);
+                const isToday = TODAY.getFullYear() === year && TODAY.getMonth() === month && TODAY.getDate() === d;
+                const isSelected = selectedDate.getFullYear() === year && selectedDate.getMonth() === month && selectedDate.getDate() === d;
+                const dow = new Date(year, month, d).getDay();
+                const textColor = dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : '';
+                html += `<div class="calendar-day ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''} ${isSelected ? 'bg-violet-200' : ''} ${textColor}" onclick="selectCalendarDate(${year}, ${month}, ${d})">${d}</div>`;
+            }
+            document.getElementById('calendarGrid').innerHTML = html;
+            updateDayScheduleList();
+        }
+        function selectCalendarDate(y, m, d) { selectedDate = new Date(y, m, d); renderCalendar(); }
+        function updateDayScheduleList() {
+            const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            document.getElementById('selectedDateLabel').textContent = `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 (${days[selectedDate.getDay()]})`;
+            const daySchedules = schedules.filter(s => s.date === dateStr);
+            document.getElementById('dayScheduleList').innerHTML = daySchedules.length === 0 
+                ? '<div class="text-center text-gray-400 py-4">등록된 일정이 없습니다</div>'
+                : daySchedules.map(s => `<div class="bg-violet-100 rounded-lg p-3 flex items-center justify-between"><div class="font-bold text-sm text-violet-700">${s.title}</div><button class="admin-only text-gray-400 hover:text-red-500" onclick="deleteSchedule('${s.date}','${s.title}')"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`).join('');
+            updateAdminUI(); lucide.createIcons();
+        }
+        function prevMonth() { currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1); renderCalendar(); }
+        function nextMonth() { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1); renderCalendar(); }
+        function openAddScheduleModal() { document.getElementById('scheduleDate').value = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`; document.getElementById('scheduleTitle').value = ''; document.getElementById('addScheduleModal').classList.remove('hidden'); lucide.createIcons(); }
+        function closeAddScheduleModal() { document.getElementById('addScheduleModal').classList.add('hidden'); }
+        function saveSchedule() { const date = document.getElementById('scheduleDate').value, title = document.getElementById('scheduleTitle').value.trim(); if (!date || !title) { alert('날짜와 내용을 입력하세요.'); return; } schedules.push({ date, title }); closeAddScheduleModal(); renderCalendar(); updateScheduleDisplay(); alert('일정이 추가되었습니다!'); }
+        function deleteSchedule(date, title) { if (confirm(`'${title}' 일정을 삭제할까요?`)) { schedules = schedules.filter(s => !(s.date === date && s.title === title)); renderCalendar(); updateScheduleDisplay(); } }
+        function updateScheduleDisplay() {
+            const todayStr = TODAY.toISOString().split('T')[0];
+            const upcoming = schedules
+                .filter(s => s.date >= todayStr)
+                .sort((a, b) => a.date.localeCompare(b.date))
+                .slice(0, 3);
+
+            if (upcoming.length === 0) {
+                document.getElementById('scheduleList').innerHTML = `
+                    <div class="bg-white/80 backdrop-blur px-3 shadow-sm text-center flex-col !items-center justify-center">
+                        <div class="text-2xl mb-1">📚</div>
+                        <div class="text-gray-500 text-xs">등록된 일정이 없어요</div>
+                    </div>
+                    <div class="bg-violet-100 backdrop-blur px-2 shadow-sm text-center"><span class="text-violet-600 text-xs font-medium">📅 클릭하여 일정 관리</span></div>`;
+            } else {
+                document.getElementById('scheduleList').innerHTML = upcoming.map(s => {
+                    const d = s.date.split('-');
+                    const icon = s.title.includes('졸업') ? '🎓' : s.title.includes('종업') ? '🏫' : s.title.includes('개학') ? '📚' : s.title.includes('입학') ? '🌸' : '📅';
+                    return `<div class="bg-white/80 backdrop-blur px-2 shadow-sm"><span class="mr-1">${icon}</span><span class="font-bold text-violet-600 text-xs">${parseInt(d[1])}/${parseInt(d[2])}</span> <span class="ml-1 text-xs font-medium">${s.title}</span></div>`;
+                }).join('') + '<div class="bg-violet-100 backdrop-blur px-2 shadow-sm text-center"><span class="text-violet-600 text-xs font-medium">📅 클릭하여 일정 관리</span></div>';
+            }
+        }
+
+        // 기타
+        function openLibrary() { window.open('https://read365.edunet.net/PureScreen/SchoolSearch?schoolName=%EC%98%A5%EA%B3%A1%EC%B4%88%EB%93%B1%ED%95%99%EA%B5%90&provCode=R10&neisCode=R100006146', '_blank'); }
+        function openImageModal(emoji, title, date, location) { document.getElementById('modalImage').textContent = emoji; document.getElementById('modalTitle').textContent = title; document.getElementById('modalDate').textContent = date; document.getElementById('modalLocation').textContent = location; document.getElementById('imageModal').classList.remove('hidden'); lucide.createIcons(); }
+        function closeImageModal() { document.getElementById('imageModal').classList.add('hidden'); }
+        function openPraiseModal() { if (isPreviewMode) { alert('미리보기 모드에서는 작성할 수 없습니다.'); return; } document.getElementById('praiseModal').classList.remove('hidden'); lucide.createIcons(); }
+        function closePraiseModal() { document.getElementById('praiseModal').classList.add('hidden'); document.getElementById('praiseInput').value = ''; }
+        function submitPraise() { if (!document.getElementById('praiseInput').value.trim()) { alert('내용을 입력해주세요.'); return; } alert('등록 완료! 선생님 승인 후 게시됩니다.'); closePraiseModal(); }
+        function openLostModal() { if (isPreviewMode) { alert('미리보기 모드에서는 등록할 수 없습니다.'); return; } document.getElementById('lostModal').classList.remove('hidden'); lucide.createIcons(); }
+        function closeLostModal() { document.getElementById('lostModal').classList.add('hidden'); }
+        function submitLost() { if (!document.getElementById('lostDesc').value.trim()) { alert('분실물 설명을 입력해주세요.'); return; } alert('등록 완료! 선생님 승인 후 게시됩니다.'); closeLostModal(); }
+        function openSuggestionBoard() { document.getElementById('dashboardContainer').classList.add('hidden'); document.getElementById('suggestionContainer').classList.remove('hidden'); lucide.createIcons(); }
+        function goBackToDashboard() { document.getElementById('suggestionContainer').classList.add('hidden'); document.getElementById('dashboardContainer').classList.remove('hidden'); lucide.createIcons(); }
+        function openSuggestionModal() { if (isPreviewMode) { alert('미리보기 모드에서는 작성할 수 없습니다.'); return; } document.getElementById('suggestionModal').classList.remove('hidden'); lucide.createIcons(); }
+        function closeSuggestionModal() { document.getElementById('suggestionModal').classList.add('hidden'); document.getElementById('suggestionInput').value = ''; }
+        function submitSuggestion() { if (!document.getElementById('suggestionInput').value.trim()) { alert('내용을 입력해주세요.'); return; } alert('등록 완료! 선생님 승인 후 게시됩니다.'); closeSuggestionModal(); }
+        function likeSuggestion(btn) { if (isPreviewMode) return; const c = btn.querySelector('.like-count'); c.textContent = parseInt(c.textContent) + 1; btn.disabled = true; btn.style.opacity = '0.6'; }
+        function openLostApprovalModal() { document.getElementById('lostApprovalModal').classList.remove('hidden'); lucide.createIcons(); }
+        function closeLostApprovalModal() { document.getElementById('lostApprovalModal').classList.add('hidden'); }
+        function openPraiseApprovalModal() { document.getElementById('praiseApprovalModal').classList.remove('hidden'); lucide.createIcons(); }
+        function closePraiseApprovalModal() { document.getElementById('praiseApprovalModal').classList.add('hidden'); }
+        function approveLost(btn) { btn.closest('.approval-item').remove(); alert('승인되었습니다!'); }
+        function approvePraise(btn) { btn.closest('.approval-item').remove(); alert('승인되었습니다!'); }
+        function rejectItem(btn) { if (confirm('거절하시겠습니까?')) btn.closest('.approval-item').remove(); }
+
+        function openEditModal(type) {
+            const configs = {
+                notice: { title: '공지사항 관리', html: '<div class="space-y-2"><div class="flex gap-2"><input class="flex-1 p-2 border rounded-lg text-sm" value="내일 종업식 10시!"><button class="px-2 text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div><button class="w-full py-2 mt-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 text-sm">+ 공지 추가</button>' },
+                goal: { title: '생활목표 관리', html: '<div class="space-y-2"><div class="flex gap-2"><input class="flex-1 p-2 border rounded-lg text-sm" value="복도에서 뛰지 않기"><button class="px-2 text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div><div class="flex gap-2"><input class="flex-1 p-2 border rounded-lg text-sm" value="급식 남기지 않기"><button class="px-2 text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div><button class="w-full py-2 mt-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 text-sm">+ 목표 추가</button>' },
+                safety: { title: '안전통계 관리', html: '<p class="text-sm text-gray-500 mb-3">사고 데이터를 입력하세요.</p><div class="space-y-2"><div class="flex gap-2"><input class="flex-1 p-2 border rounded-lg text-sm" placeholder="사고 유형"><input type="number" class="w-20 p-2 border rounded-lg text-sm" placeholder="건수"></div></div><button class="w-full py-2 mt-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 text-sm">+ 항목 추가</button>' },
+                health: { title: '보건실 통계', html: '<div class="space-y-2"><div class="flex items-center gap-2"><span class="flex-1 text-sm">복도충돌</span><input type="number" value="4" class="w-16 p-2 border rounded-lg text-center text-sm"><span class="text-sm">건</span></div><div class="flex items-center gap-2"><span class="flex-1 text-sm">넘어짐</span><input type="number" value="3" class="w-16 p-2 border rounded-lg text-center text-sm"><span class="text-sm">건</span></div></div>' }
+            };
+            const c = configs[type] || { title: '편집', html: '' };
+            document.getElementById('editModalTitle').textContent = c.title;
+            document.getElementById('editModalContent').innerHTML = c.html;
+            document.getElementById('editModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+        function submitEdit() { alert('저장되었습니다!'); closeEditModal(); }
+
+        // PWA Service Worker 등록
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then((reg) => console.log('Service Worker 등록 완료'))
+                    .catch((err) => console.log('Service Worker 등록 실패:', err));
+            });
+        }
+
+        // PWA 설치 프롬프트
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallButton();
+        });
+
+        function showInstallButton() {
+            const banner = document.createElement('div');
+            banner.id = 'installBanner';
+            banner.innerHTML = `
+                <div style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+                            background:linear-gradient(135deg, #1a365d, #3182ce); color:white;
+                            padding:14px 28px; border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,0.3);
+                            display:flex; align-items:center; gap:14px; z-index:9999; font-size:15px;">
+                    <span style="font-size:24px;">📱</span>
+                    <span style="font-weight:600;">홈 화면에 추가할까요?</span>
+                    <button onclick="installPWA()" style="background:white; color:#1a365d; border:none;
+                            padding:10px 20px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:14px;">
+                        설치하기
+                    </button>
+                    <button onclick="document.getElementById('installBanner').remove()"
+                            style="background:transparent; border:none; color:white; cursor:pointer; font-size:20px; padding:4px;">
+                        ✕
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(banner);
+        }
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((result) => {
+                    deferredPrompt = null;
+                    document.getElementById('installBanner')?.remove();
+                });
+            }
+        }
+
+        // 갤러리 데이터 (더미 - 나중에 Firebase 연동)
+        const galleryData = {
+            poem: [
+                { title: '봄바람', author: '3-2 김○○', content: '봄바람이 불면\n꽃잎이 춤을 춰요\n나도 함께 춤추고 싶어', type: 'text' },
+                { title: '별빛 꿈', author: '5-1 이○○', content: '별이 반짝반짝\n꿈을 꾸는 밤\n내일은 더 빛날 거야', type: 'text' }
+            ],
+            artwork: [
+                { title: '무지개 마을', author: '4-1 박○○', emoji: '🌈', type: 'image' },
+                { title: '나비의 꿈', author: '6-2 최○○', emoji: '🦋', type: 'image' }
+            ],
+            award: [
+                { title: '우리 학교', author: '5-3 정○○', contest: '그리기대회', award: '최우수', emoji: '🎨', type: 'image' },
+                { title: '나의 꿈', author: '4-2 강○○', contest: '글짓기대회', award: '우수', emoji: '✍️', type: 'image' }
+            ]
+        };
+
+        // 갤러리 모달 열기
+        function openGalleryModal(type, index) {
+            const data = galleryData[type]?.[index];
+            if (!data) return;
+
+            const modal = document.getElementById('galleryModal');
+            const content = document.getElementById('galleryModalContent');
+
+            let html = '';
+            if (data.type === 'text') {
+                // 시 작품 - 전체화면
+                html = `
+                    <div class="bg-gradient-to-br from-violet-200 to-purple-300 rounded-3xl p-16 flex items-center justify-center shadow-2xl" style="min-width: 60vw; min-height: 60vh;">
+                        <div class="text-center">
+                            <div class="text-4xl leading-loose text-gray-800 font-handwriting whitespace-pre-line mb-8">${data.content}</div>
+                            <div class="text-2xl font-bold text-violet-700">「${data.title}」</div>
+                            <div class="text-xl text-violet-600 mt-2">${data.author}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // 이미지 작품 - 전체화면
+                const bgColor = type === 'artwork' ? 'from-amber-200 to-yellow-300' : 'from-emerald-200 to-teal-300';
+                const textColor = type === 'artwork' ? 'text-amber-700' : 'text-emerald-700';
+                html = `
+                    <div class="bg-gradient-to-br ${bgColor} rounded-3xl p-16 flex flex-col items-center justify-center shadow-2xl relative" style="min-width: 60vw; min-height: 60vh;">
+                        ${data.award ? `<div class="absolute top-6 right-6 bg-yellow-400 text-white text-xl font-bold px-4 py-2 rounded-full shadow-lg">🏆 ${data.award}</div>` : ''}
+                        <div class="text-[12rem] mb-8">${data.emoji}</div>
+                        <div class="text-3xl font-bold ${textColor}">「${data.title}」</div>
+                        <div class="text-xl text-gray-600 mt-2">${data.author}${data.contest ? ` · ${data.contest}` : ''}</div>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // 갤러리 모달 닫기
+        function closeGalleryModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('galleryModal').classList.add('hidden');
+        }
+
+        // 우리반 바로가기
+        function openMyClass() {
+            if (!currentUser && !APP_CONFIG.DEV_MODE) {
+                showLoginError('로그인이 필요합니다');
+                return;
+            }
+            
+            if (!userClass) {
+                alert('반 정보가 없습니다. 담임선생님께 문의하세요.');
+                return;
+            }
+
+            // 우리반 페이지로 이동 (추후 구현)
+            alert(`🏫 ${userClass} 우리반 페이지\n\n아직 준비중입니다!\n(감정출석부, 학습일지, 레벨업 등)`);
+        }
+
+        // 우리반 라벨 업데이트
+        function updateMyClassLabel() {
+            const label = document.getElementById('myClassLabel');
+            if (userClass) {
+                label.textContent = userClass;
+                label.classList.remove('hidden');
+            } else {
+                label.classList.add('hidden');
+            }
+        }
+
+        // showDashboard 후 호출
+        const originalShowDashboard = showDashboard;
+        showDashboard = async function() {
+            await originalShowDashboard.call(this);
+            updateMyClassLabel();
+        }
+
+        // 슬라이드 네비게이션
+        function prevSlide(name) {
+            if (swipers[name]) swipers[name].slidePrev();
+        }
+        function nextSlide(name) {
+            if (swipers[name]) swipers[name].slideNext();
+        }
+
+        // 네이버 도서 API 설정
+        const NAVER_API = {
+            CLIENT_ID: 'MjMyvKftcJDkCZMBVbC',
+            CLIENT_SECRET: 'iLbTTE1kpw'
+        };
+
+        // 도서 데이터 (Firebase에서 로드 - 임시 더미)
+        let booksData = [
+            { title: '어린왕자', author: '생텍쥐페리', thumbnail: '' },
+            { title: '마당을 나온 암탉', author: '황선미', thumbnail: '' },
+            { title: '샬롯의 거미줄', author: 'E.B.화이트', thumbnail: '' }
+        ];
+
+        // 도서 편집 모달
+        function openBookEditModal() {
+            document.getElementById('bookEditModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function closeBookEditModal() {
+            document.getElementById('bookEditModal').classList.add('hidden');
+        }
+
+        // 네이버 도서 검색 (CORS 프록시 필요 - 실제 사용시 서버 프록시 구현)
+        async function searchBook() {
+            const query = document.getElementById('bookSearchInput').value.trim();
+            if (!query) { alert('도서명을 입력하세요'); return; }
+
+            const resultsDiv = document.getElementById('bookSearchResults');
+            resultsDiv.innerHTML = '<div class="text-center py-2 text-gray-500">검색 중...</div>';
+            resultsDiv.classList.remove('hidden');
+
+            try {
+                // CORS 프록시 사용 (실제 배포 시 Firebase Functions로 대체)
+                const proxyUrl = 'https://corsproxy.io/?';
+                const apiUrl = `https://openapi.naver.com/v1/search/book.json?query=${encodeURIComponent(query)}&display=5`;
+                
+                const response = await fetch(proxyUrl + encodeURIComponent(apiUrl), {
+                    headers: {
+                        'X-Naver-Client-Id': NAVER_API.CLIENT_ID,
+                        'X-Naver-Client-Secret': NAVER_API.CLIENT_SECRET
+                    }
+                });
+
+                if (!response.ok) throw new Error('API 호출 실패');
+                
+                const data = await response.json();
+                
+                if (data.items && data.items.length > 0) {
+                    resultsDiv.innerHTML = data.items.map(book => `
+                        <div class="flex items-center gap-2 p-2 bg-white rounded-lg mb-1 cursor-pointer hover:bg-pink-50" onclick="selectBook('${book.title.replace(/'/g, "\\'")}', '${book.author.replace(/'/g, "\\'")}', '${book.image}')">
+                            <img src="${book.image || 'https://via.placeholder.com/40x50?text=📚'}" class="w-10 h-12 rounded object-cover">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold truncate">${book.title.replace(/<[^>]*>/g, '')}</div>
+                                <div class="text-xs text-gray-500 truncate">${book.author.replace(/<[^>]*>/g, '')}</div>
+                            </div>
+                            <span class="text-pink-500 text-xs">선택</span>
+                        </div>
+                    `).join('');
+                } else {
+                    resultsDiv.innerHTML = '<div class="text-center py-2 text-gray-500">검색 결과가 없습니다</div>';
+                }
+            } catch (error) {
+                console.error('도서 검색 에러:', error);
+                resultsDiv.innerHTML = '<div class="text-center py-2 text-red-500">검색 실패 (CORS 제한)</div>';
+            }
+        }
+
+        function selectBook(title, author, thumbnail) {
+            alert(`선택: ${title}\n저자: ${author}\n\n순위를 선택하여 등록하세요.`);
+            // 실제 구현시 Firebase에 저장
+        }
+
+        function saveBooks() {
+            alert('도서 정보가 저장되었습니다.');
+            closeBookEditModal();
+        }
+
+        // 갤러리 업로드 모달
+        let currentGalleryType = '';
+        function openGalleryUpload(type) {
+            currentGalleryType = type;
+            const titles = { poem: '📝 시울림 등록', artwork: '🎨 솜씨자랑 등록', award: '🏆 수상작 등록' };
+            document.getElementById('galleryUploadTitle').textContent = titles[type] || '작품 등록';
+            document.getElementById('galleryAwardSection').classList.toggle('hidden', type !== 'award');
+            document.getElementById('galleryUploadModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function closeGalleryUploadModal() {
+            document.getElementById('galleryUploadModal').classList.add('hidden');
+            // 폼 리셋
+            document.getElementById('galleryTitle').value = '';
+            document.getElementById('galleryClass').value = '';
+            document.getElementById('galleryAuthor').value = '';
+            document.getElementById('galleryImageUrl').value = '';
+            document.getElementById('galleryImagePreview').classList.add('hidden');
+            document.getElementById('galleryUploadPlaceholder').classList.remove('hidden');
+        }
+        function previewGalleryImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('galleryPreviewImg').src = e.target.result;
+                    document.getElementById('galleryImagePreview').classList.remove('hidden');
+                    document.getElementById('galleryUploadPlaceholder').classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        function submitGalleryUpload() {
+            const title = document.getElementById('galleryTitle').value.trim();
+            const classInfo = document.getElementById('galleryClass').value.trim();
+            const author = document.getElementById('galleryAuthor').value.trim();
+            
+            if (!title || !classInfo || !author) {
+                alert('모든 정보를 입력해주세요.');
+                return;
+            }
+            
+            // 실제 구현시 Firebase Storage + Database에 저장
+            alert(`등록 완료!\n\n제목: ${title}\n작가: ${classInfo} ${author}\n\n(Firebase 연동 시 실제 저장됩니다)`);
+            closeGalleryUploadModal();
+        }
+
+        // 분실물 등록 기능 확인 및 개선
+        function openLostModal() { 
+            document.getElementById('lostModal').classList.remove('hidden'); 
+            lucide.createIcons(); 
+        }
+        function closeLostModal() { document.getElementById('lostModal').classList.add('hidden'); }
+        function submitLost() { 
+            const desc = document.getElementById('lostDesc').value.trim();
+            const loc = document.getElementById('lostLocation').value.trim();
+            if (!desc || !loc) { alert('설명과 장소를 입력하세요.'); return; }
+            // 실제 구현시 Firebase에 저장 (승인 대기 상태로)
+            alert(`등록 완료!\n\n${desc}\n발견 장소: ${loc}\n\n선생님 승인 후 게시됩니다.`);
+            closeLostModal();
+            document.getElementById('lostDesc').value = '';
+            document.getElementById('lostLocation').value = '';
+        }
+    </script>
+</body>
+</html>
